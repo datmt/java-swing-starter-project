@@ -1,5 +1,7 @@
 package com.toolbox;
 
+import com.toolbox.tools.JsonToCsvPanel;
+
 import javax.swing.*;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -21,8 +23,8 @@ public class ToolTreeModel extends DefaultTreeModel {
         // Create JSON category
         Tool jsonCategory = new Tool("JSON Tools", new JPanel(), true);
         
-        // Create JSON to CSV tool
-        Tool jsonToCsvTool = new Tool("JSON to CSV", new JPanel());
+        // Create JSON to CSV tool with its panel
+        Tool jsonToCsvTool = new Tool("JSON to CSV", new JsonToCsvPanel());
         jsonCategory.addChild(jsonToCsvTool);
         
         // Add to all tools list
