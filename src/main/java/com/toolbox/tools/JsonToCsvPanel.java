@@ -1,38 +1,33 @@
 package com.toolbox.tools;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.opencsv.CSVWriter;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
 import java.util.List;
 
 public class JsonToCsvPanel extends JPanel {
     private final JTextArea logArea;
     private final JButton selectFilesButton;
     private final JButton convertButton;
-    private final ObjectMapper objectMapper;
+    private final JButton openFileButton;
+    private final JsonToCsvConverter converter;
     private File[] selectedFiles;
-    private final DateTimeFormatter dateFormatter;
+    private File lastConvertedFile;
 
     public JsonToCsvPanel() {
         setLayout(new MigLayout("fill"));
-        objectMapper = new ObjectMapper();
-        dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+        converter = new JsonToCsvConverter();
 
         // Create components
         selectFilesButton = new JButton("Select JSON Files");
         convertButton = new JButton("Convert to CSV");
+        openFileButton = new JButton("Open Last Converted File");
         convertButton.setEnabled(false);
+        openFileButton.setEnabled(false);
         logArea = new JTextArea();
         logArea.setEditable(false);
 
@@ -40,6 +35,7 @@ public class JsonToCsvPanel extends JPanel {
         JPanel buttonPanel = new JPanel(new MigLayout("insets 0"));
         buttonPanel.add(selectFilesButton);
         buttonPanel.add(convertButton);
+        buttonPanel.add(openFileButton);
 
         add(buttonPanel, "wrap");
         add(new JScrollPane(logArea), "grow");
@@ -51,6 +47,7 @@ public class JsonToCsvPanel extends JPanel {
     private void setupListeners() {
         selectFilesButton.addActionListener(e -> selectFiles());
         convertButton.addActionListener(e -> convertFiles());
+        openFileButton.addActionListener(e -> openLastConvertedFile());
     }
 
     private void selectFiles() {
@@ -77,7 +74,8 @@ public class JsonToCsvPanel extends JPanel {
                 for (File jsonFile : selectedFiles) {
                     try {
                         publish("Processing " + jsonFile.getName() + "...");
-                        File csvFile = convertJsonToCsv(jsonFile);
+                        File csvFile = converter.convertJsonToCsv(jsonFile);
+                        lastConvertedFile = csvFile;
                         publish("Successfully converted " + jsonFile.getName());
                         publish("CSV file created: " + csvFile.getName());
                     } catch (Exception e) {
@@ -98,6 +96,7 @@ public class JsonToCsvPanel extends JPanel {
             @Override
             protected void done() {
                 convertButton.setEnabled(true);
+                openFileButton.setEnabled(lastConvertedFile != null);
             }
         };
 
@@ -105,71 +104,16 @@ public class JsonToCsvPanel extends JPanel {
         worker.execute();
     }
 
-    private File convertJsonToCsv(File jsonFile) throws IOException {
-        // Read JSON
-        JsonNode rootNode = objectMapper.readTree(jsonFile);
-        
-        // Get all unique fields from all objects
-        Set<String> headers = new LinkedHashSet<>();
-        if (rootNode.isArray()) {
-            for (JsonNode node : rootNode) {
-                node.fieldNames().forEachRemaining(headers::add);
-            }
-        } else {
-            rootNode.fieldNames().forEachRemaining(headers::add);
-        }
-
-        // Create CSV file name with timestamp
-        String timestamp = LocalDateTime.now().format(dateFormatter);
-        String baseName = jsonFile.getName().replaceFirst("[.][^.]+$", "");
-        String csvFileName = String.format("%s_%s.csv", baseName, timestamp);
-        File csvFile = new File(jsonFile.getParentFile(), csvFileName);
-
-        // Write CSV
-        try (CSVWriter writer = new CSVWriter(new FileWriter(csvFile))) {
-            // Write headers
-            writer.writeNext(headers.toArray(new String[0]));
-
-            // Write data
-            if (rootNode.isArray()) {
-                for (JsonNode node : rootNode) {
-                    writeJsonNodeToCsv(node, headers, writer);
-                }
-            } else {
-                writeJsonNodeToCsv(rootNode, headers, writer);
+    private void openLastConvertedFile() {
+        if (lastConvertedFile != null && lastConvertedFile.exists()) {
+            try {
+                Desktop.getDesktop().open(lastConvertedFile);
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this,
+                    "Error opening file: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
             }
         }
-        
-        return csvFile;
-    }
-
-    private void writeJsonNodeToCsv(JsonNode node, Set<String> headers, CSVWriter writer) {
-        String[] row = new String[headers.size()];
-        int i = 0;
-        for (String header : headers) {
-            JsonNode value = node.get(header);
-            row[i++] = formatJsonValue(value);
-        }
-        writer.writeNext(row);
-    }
-
-    private String formatJsonValue(JsonNode value) {
-        if (value == null) {
-            return "";
-        }
-        if (value.isTextual()) {
-            return value.asText();
-        }
-        if (value.isNumber()) {
-            return value.asText();
-        }
-        if (value.isBoolean()) {
-            return value.asText();
-        }
-        if (value.isNull()) {
-            return "";
-        }
-        // For objects and arrays, return the JSON string representation
-        return value.toString();
     }
 }
