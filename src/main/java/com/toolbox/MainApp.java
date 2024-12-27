@@ -6,17 +6,15 @@ import net.miginfocom.swing.MigLayout;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.event.ListSelectionEvent;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class MainApp extends JFrame {
     private final JPanel contentPanel;
     private final JTextField searchField;
-    private final JList<Tool> toolList;
-    private final DefaultListModel<Tool> listModel;
-    private final List<Tool> allTools;
+    private final JTree toolTree;
+    private final ToolTreeModel treeModel;
 
     public MainApp() {
         super("Desktop Tools");
@@ -27,12 +25,8 @@ public class MainApp extends JFrame {
         // Initialize components
         contentPanel = new JPanel(new MigLayout("fill"));
         searchField = new JTextField(20);
-        listModel = new DefaultListModel<>();
-        toolList = new JList<>(listModel);
-        allTools = new ArrayList<>();
-
-        // Setup tools
-        initializeTools();
+        treeModel = new ToolTreeModel();
+        toolTree = new JTree(treeModel);
         
         // Setup UI
         setupUI();
@@ -41,31 +35,20 @@ public class MainApp extends JFrame {
         setupListeners();
     }
 
-    private void initializeTools() {
-        // Add your tools here
-        allTools.add(new Tool("Calculator", new JPanel()));
-        allTools.add(new Tool("Text Editor", new JPanel()));
-        allTools.add(new Tool("Image Viewer", new JPanel()));
-        // Add more tools as needed
-        
-        // Initialize the list model
-        updateListModel("");
-    }
-
     private void setupUI() {
         setLayout(new MigLayout("fill"));
         
-        // Left panel with search and list
+        // Left panel with search and tree
         JPanel leftPanel = new JPanel(new MigLayout("fillx, wrap"));
         leftPanel.add(new JLabel("Search:"), "split 2");
         leftPanel.add(searchField, "growx, wrap");
         
-        // Style the list
-        toolList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        toolList.setCellRenderer(new ToolListCellRenderer());
+        // Style the tree
+        toolTree.setRootVisible(false);
+        toolTree.setShowsRootHandles(true);
         
-        JScrollPane listScrollPane = new JScrollPane(toolList);
-        leftPanel.add(listScrollPane, "grow");
+        JScrollPane treeScrollPane = new JScrollPane(toolTree);
+        leftPanel.add(treeScrollPane, "grow");
         
         // Right content panel
         JPanel rightPanel = new JPanel(new MigLayout("fill"));
@@ -96,30 +79,26 @@ public class MainApp extends JFrame {
             }
         });
 
-        // Tool list selection listener
-        toolList.addListSelectionListener(this::handleToolSelection);
+        // Tool tree selection listener
+        toolTree.addTreeSelectionListener(e -> {
+            TreePath path = e.getNewLeadSelectionPath();
+            if (path != null) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
+                Tool selectedTool = treeModel.getToolAtNode(node);
+                if (selectedTool != null && !selectedTool.isCategory()) {
+                    showTool(selectedTool);
+                }
+            }
+        });
     }
 
     private void filterTools() {
-        String searchText = searchField.getText().toLowerCase();
-        updateListModel(searchText);
-    }
-
-    private void updateListModel(String searchText) {
-        listModel.clear();
-        for (Tool tool : allTools) {
-            if (tool.getName().toLowerCase().contains(searchText)) {
-                listModel.addElement(tool);
-            }
-        }
-    }
-
-    private void handleToolSelection(ListSelectionEvent e) {
-        if (!e.getValueIsAdjusting()) {
-            Tool selectedTool = toolList.getSelectedValue();
-            if (selectedTool != null) {
-                showTool(selectedTool);
-            }
+        String searchText = searchField.getText();
+        treeModel.filterTools(searchText);
+        
+        // Expand all nodes after filtering
+        for (int i = 0; i < toolTree.getRowCount(); i++) {
+            toolTree.expandRow(i);
         }
     }
 
