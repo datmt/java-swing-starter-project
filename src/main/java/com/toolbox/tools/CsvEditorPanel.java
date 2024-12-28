@@ -12,12 +12,12 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
-import java.awt.event.ActionEvent;
+import java.awt.event.*;
 import java.io.*;
-import java.util.Arrays;
-import java.util.List;
 import java.util.ArrayList;
-import java.util.Vector;
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -38,10 +38,39 @@ public class CsvEditorPanel extends JPanel {
     private JCheckBox exactMatchCheckBox;
     private List<Point> matchingCells = new ArrayList<>();
     private int currentMatchIndex = -1;
+    private JProgressBar progressBar;
+    private JPanel overlayPanel;
+    private JLayeredPane layeredPane;
+    private JPanel mainPanel;
+    private boolean isProcessing = false;
 
     public CsvEditorPanel() {
         setLayout(new BorderLayout(0, 0));
         setBorder(new EmptyBorder(5, 5, 5, 5));
+
+        // Create layered pane for main content and overlay
+        layeredPane = new JLayeredPane();
+        add(layeredPane, BorderLayout.CENTER);
+
+        // Main content panel
+        mainPanel = new JPanel(new BorderLayout(0, 0));
+        
+        // Create overlay panel for blocking UI during processing
+        overlayPanel = new JPanel(new BorderLayout());
+        overlayPanel.setBackground(new Color(255, 255, 255, 180));
+        JPanel centerPanel = new JPanel(new MigLayout("", "[]", "[]10[]"));
+        centerPanel.setOpaque(false);
+        
+        JLabel processingLabel = new JLabel("Processing...");
+        processingLabel.setForeground(Color.BLACK);
+        centerPanel.add(processingLabel, "wrap, center");
+        
+        progressBar = new JProgressBar();
+        progressBar.setStringPainted(true);
+        centerPanel.add(progressBar, "width 200!");
+        
+        overlayPanel.add(centerPanel, BorderLayout.CENTER);
+        overlayPanel.setVisible(false);
 
         // Top panel with controls
         JPanel topPanel = new JPanel(new MigLayout("insets 0, gap 2", "[left]2[left]2[center,grow]0[right]", "[]0[]"));
@@ -112,7 +141,7 @@ public class CsvEditorPanel extends JPanel {
         
         topPanel.add(searchPanel, "cell 0 1 4 1, growx");
         
-        add(topPanel, BorderLayout.NORTH);
+        mainPanel.add(topPanel, BorderLayout.NORTH);
 
         // Content panel with card layout
         cardLayout = new CardLayout();
@@ -158,13 +187,29 @@ public class CsvEditorPanel extends JPanel {
         contentPanel.add(textPanel, "text");
 
         // Add content panel with "push" constraint to make it fill available space
-        add(contentPanel, BorderLayout.CENTER);
+        mainPanel.add(contentPanel, BorderLayout.CENTER);
         
         // Set minimum size to ensure reasonable display
         setMinimumSize(new Dimension(400, 300));
         setPreferredSize(new Dimension(800, 600));
         
         setupSearchListeners();
+
+        // Add both panels to layered pane
+        layeredPane.add(mainPanel, JLayeredPane.DEFAULT_LAYER);
+        layeredPane.add(overlayPanel, JLayeredPane.MODAL_LAYER);
+
+        // Handle resize
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                // Update sizes of layered pane components
+                Dimension size = getSize();
+                layeredPane.setSize(size);
+                mainPanel.setBounds(0, 0, size.width, size.height);
+                overlayPanel.setBounds(0, 0, size.width, size.height);
+            }
+        });
     }
 
     private void setupSearchListeners() {
@@ -294,10 +339,103 @@ public class CsvEditorPanel extends JPanel {
     }
 
     private void replaceAll() {
-        while (!matchingCells.isEmpty()) {
-            currentMatchIndex = 0;
-            replaceSelected();
+        DefaultTableModel model = (DefaultTableModel) table.getModel();
+        String searchText = searchField.getText();
+        String replaceText = replaceField.getText();
+        boolean caseSensitive = matchCaseCheckBox.isSelected();
+        boolean exactMatch = exactMatchCheckBox.isSelected();
+        
+        if (searchText.isEmpty()) {
+            return;
         }
+
+        // Start background task
+        SwingWorker<Void, Integer> worker = new SwingWorker<>() {
+            private int totalReplacements = 0;
+
+            @Override
+            protected Void doInBackground() {
+                try {
+                    // Count total potential replacements first
+                    int totalCells = model.getRowCount() * model.getColumnCount();
+                    int processed = 0;
+                    
+                    // Process each cell
+                    for (int row = 0; row < model.getRowCount(); row++) {
+                        for (int col = 0; col < model.getColumnCount(); col++) {
+                            Object value = model.getValueAt(row, col);
+                            if (value != null) {
+                                String cellText = value.toString();
+                                String compareCellText = caseSensitive ? cellText : cellText.toLowerCase();
+                                String compareSearchText = caseSensitive ? searchText : searchText.toLowerCase();
+
+                                boolean matches;
+                                if (exactMatch) {
+                                    matches = compareCellText.equals(compareSearchText);
+                                } else {
+                                    matches = compareCellText.contains(compareSearchText);
+                                }
+
+                                if (matches) {
+                                    if (exactMatch) {
+                                        model.setValueAt(replaceText, row, col);
+                                        totalReplacements++;
+                                    } else {
+                                        String newText = caseSensitive ?
+                                            cellText.replace(searchText, replaceText) :
+                                            cellText.replaceAll("(?i)" + Pattern.quote(searchText), replaceText);
+                                        model.setValueAt(newText, row, col);
+                                        totalReplacements++;
+                                    }
+                                }
+                            }
+                            
+                            processed++;
+                            publish((processed * 100) / totalCells);
+                            
+                            // Add a small delay to prevent UI from becoming completely unresponsive
+                            if (processed % 1000 == 0) {
+                                Thread.sleep(1);
+                            }
+                        }
+                    }
+                    return null;
+                } catch (InterruptedException e) {
+                    return null;
+                }
+            }
+
+            @Override
+            protected void process(List<Integer> chunks) {
+                // Update progress bar
+                if (!chunks.isEmpty()) {
+                    progressBar.setValue(chunks.get(chunks.size() - 1));
+                }
+            }
+
+            @Override
+            protected void done() {
+                // Re-enable UI
+                setProcessing(false);
+                
+                // Update search state
+                clearSearchState();
+                updateSearch();
+                
+                // Show completion message
+                JOptionPane.showMessageDialog(CsvEditorPanel.this,
+                    String.format("Replaced %d occurrence%s", 
+                        totalReplacements,
+                        totalReplacements == 1 ? "" : "s"),
+                    "Replace Complete",
+                    JOptionPane.INFORMATION_MESSAGE);
+            }
+        };
+
+        // Start processing
+        setProcessing(true);
+        progressBar.setValue(0);
+        worker.execute();
     }
 
     private void toggleViewMode(JToggleButton button) {
@@ -526,5 +664,21 @@ public class CsvEditorPanel extends JPanel {
             message,
             "Error",
             JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void setProcessing(boolean processing) {
+        isProcessing = processing;
+        overlayPanel.setVisible(processing);
+        
+        // Disable all interactive components
+        searchField.setEnabled(!processing);
+        replaceField.setEnabled(!processing);
+        findNextButton.setEnabled(!processing);
+        replaceButton.setEnabled(!processing);
+        replaceAllButton.setEnabled(!processing);
+        matchCaseCheckBox.setEnabled(!processing);
+        exactMatchCheckBox.setEnabled(!processing);
+        table.setEnabled(!processing);
+        textArea.setEnabled(!processing);
     }
 }
