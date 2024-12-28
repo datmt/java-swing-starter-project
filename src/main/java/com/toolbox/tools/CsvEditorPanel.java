@@ -48,31 +48,50 @@ public class CsvEditorPanel extends JPanel {
         setLayout(new BorderLayout(0, 0));
         setBorder(new EmptyBorder(5, 5, 5, 5));
 
-        // Create layered pane for main content and overlay
-        layeredPane = new JLayeredPane();
-        add(layeredPane, BorderLayout.CENTER);
+        // Initialize card layout and content panel first
+        cardLayout = new CardLayout();
+        contentPanel = new JPanel(cardLayout);
 
-        // Main content panel
-        mainPanel = new JPanel(new BorderLayout(0, 0));
+        // Initialize table with custom renderer for highlighting
+        table = new JTable() {
+            @Override
+            public Component prepareRenderer(TableCellRenderer renderer, int row, int col) {
+                Component comp = super.prepareRenderer(renderer, row, col);
+                if (isCellSelected(row, col)) {
+                    comp.setBackground(getSelectionBackground());
+                    comp.setForeground(getSelectionForeground());
+                } else if (matchingCells.contains(new Point(row, col))) {
+                    comp.setBackground(new Color(255, 255, 0, 100)); // Light yellow highlight
+                    comp.setForeground(getForeground());
+                } else {
+                    comp.setBackground(getBackground());
+                    comp.setForeground(getForeground());
+                }
+                return comp;
+            }
+        };
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        table.setFillsViewportHeight(true);
         
-        // Create overlay panel for blocking UI during processing
-        overlayPanel = new JPanel(new BorderLayout());
-        overlayPanel.setBackground(new Color(255, 255, 255, 180));
-        JPanel centerPanel = new JPanel(new MigLayout("", "[]", "[]10[]"));
-        centerPanel.setOpaque(false);
-        
-        JLabel processingLabel = new JLabel("Processing...");
-        processingLabel.setForeground(Color.BLACK);
-        centerPanel.add(processingLabel, "wrap, center");
-        
-        progressBar = new JProgressBar();
-        progressBar.setStringPainted(true);
-        centerPanel.add(progressBar, "width 200!");
-        
-        overlayPanel.add(centerPanel, BorderLayout.CENTER);
-        overlayPanel.setVisible(false);
+        JScrollPane tableScrollPane = new JScrollPane(table);
+        tableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        tableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-        // Top panel with controls
+        // Initialize text area
+        textArea = new JTextArea();
+        textArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        JScrollPane textScrollPane = new JScrollPane(textArea);
+
+        // Add scroll panes to content panel
+        JPanel spreadsheetPanel = new JPanel(new BorderLayout());
+        spreadsheetPanel.add(tableScrollPane, BorderLayout.CENTER);
+        contentPanel.add(spreadsheetPanel, "spreadsheet");
+        
+        JPanel textPanel = new JPanel(new BorderLayout());
+        textPanel.add(textScrollPane, BorderLayout.CENTER);
+        contentPanel.add(textPanel, "text");
+
+        // Create top panel with controls
         JPanel topPanel = new JPanel(new MigLayout("insets 0, gap 2", "[left]2[left]2[center,grow]0[right]", "[]0[]"));
         
         // File controls with small fixed size buttons
@@ -140,76 +159,29 @@ public class CsvEditorPanel extends JPanel {
         searchPanel.add(replaceAllButton, "");
         
         topPanel.add(searchPanel, "cell 0 1 4 1, growx");
-        
+
+        // Create progress bar
+        progressBar = new JProgressBar();
+        progressBar.setIndeterminate(true);
+        progressBar.setVisible(false);
+        progressBar.setPreferredSize(new Dimension(0, 4));
+        progressBar.setStringPainted(false);
+
+        // Create main panel
+        JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.add(topPanel, BorderLayout.NORTH);
-
-        // Content panel with card layout
-        cardLayout = new CardLayout();
-        contentPanel = new JPanel(cardLayout);
-
-        // Initialize table with custom renderer for highlighting
-        table = new JTable() {
-            @Override
-            public Component prepareRenderer(TableCellRenderer renderer, int row, int col) {
-                Component comp = super.prepareRenderer(renderer, row, col);
-                if (isCellSelected(row, col)) {
-                    comp.setBackground(getSelectionBackground());
-                    comp.setForeground(getSelectionForeground());
-                } else if (matchingCells.contains(new Point(row, col))) {
-                    comp.setBackground(new Color(255, 255, 0, 100)); // Light yellow highlight
-                    comp.setForeground(getForeground());
-                } else {
-                    comp.setBackground(getBackground());
-                    comp.setForeground(getForeground());
-                }
-                return comp;
-            }
-        };
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        table.setFillsViewportHeight(true); // Make table fill available height
-        
-        JScrollPane tableScrollPane = new JScrollPane(table);
-        tableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        tableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-
-        // Initialize text area
-        textArea = new JTextArea();
-        textArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        JScrollPane textScrollPane = new JScrollPane(textArea);
-
-        // Add scroll panes to content panel
-        JPanel spreadsheetPanel = new JPanel(new BorderLayout());
-        spreadsheetPanel.add(tableScrollPane, BorderLayout.CENTER);
-        contentPanel.add(spreadsheetPanel, "spreadsheet");
-        
-        JPanel textPanel = new JPanel(new BorderLayout());
-        textPanel.add(textScrollPane, BorderLayout.CENTER);
-        contentPanel.add(textPanel, "text");
-
-        // Add content panel with "push" constraint to make it fill available space
         mainPanel.add(contentPanel, BorderLayout.CENTER);
-        
-        // Set minimum size to ensure reasonable display
+        mainPanel.add(progressBar, BorderLayout.SOUTH);
+
+        // Add main panel to this panel
+        add(mainPanel, BorderLayout.CENTER);
+
+        // Set sizes
         setMinimumSize(new Dimension(400, 300));
         setPreferredSize(new Dimension(800, 600));
-        
+
+        // Initialize search
         setupSearchListeners();
-
-        // Add both panels to layered pane
-        layeredPane.add(mainPanel, JLayeredPane.DEFAULT_LAYER);
-        layeredPane.add(overlayPanel, JLayeredPane.MODAL_LAYER);
-
-        // Handle resize
-        addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                // Update sizes of layered pane components
-                Dimension size = getSize();
-                layeredPane.setSize(size);
-                mainPanel.setBounds(0, 0, size.width, size.height);
-                overlayPanel.setBounds(0, 0, size.width, size.height);
-            }
-        });
     }
 
     private void setupSearchListeners() {
@@ -350,16 +322,12 @@ public class CsvEditorPanel extends JPanel {
         }
 
         // Start background task
-        SwingWorker<Void, Integer> worker = new SwingWorker<>() {
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
             private int totalReplacements = 0;
 
             @Override
             protected Void doInBackground() {
                 try {
-                    // Count total potential replacements first
-                    int totalCells = model.getRowCount() * model.getColumnCount();
-                    int processed = 0;
-                    
                     // Process each cell
                     for (int row = 0; row < model.getRowCount(); row++) {
                         for (int col = 0; col < model.getColumnCount(); col++) {
@@ -390,11 +358,8 @@ public class CsvEditorPanel extends JPanel {
                                 }
                             }
                             
-                            processed++;
-                            publish((processed * 100) / totalCells);
-                            
                             // Add a small delay to prevent UI from becoming completely unresponsive
-                            if (processed % 1000 == 0) {
+                            if ((row * model.getColumnCount() + col) % 1000 == 0) {
                                 Thread.sleep(1);
                             }
                         }
@@ -402,14 +367,6 @@ public class CsvEditorPanel extends JPanel {
                     return null;
                 } catch (InterruptedException e) {
                     return null;
-                }
-            }
-
-            @Override
-            protected void process(List<Integer> chunks) {
-                // Update progress bar
-                if (!chunks.isEmpty()) {
-                    progressBar.setValue(chunks.get(chunks.size() - 1));
                 }
             }
 
@@ -434,7 +391,6 @@ public class CsvEditorPanel extends JPanel {
 
         // Start processing
         setProcessing(true);
-        progressBar.setValue(0);
         worker.execute();
     }
 
@@ -668,7 +624,7 @@ public class CsvEditorPanel extends JPanel {
 
     private void setProcessing(boolean processing) {
         isProcessing = processing;
-        overlayPanel.setVisible(processing);
+        progressBar.setVisible(processing);
         
         // Disable all interactive components
         searchField.setEnabled(!processing);

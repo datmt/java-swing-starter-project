@@ -41,8 +41,8 @@ public class ToolTreeModel extends DefaultTreeModel {
         Tool csvMappingTool = new Tool("CSV Mapping", new CsvMappingPanel());
         csvCategory.addChild(csvMappingTool);
 
-        // Create CSV Editor tool with its panel
-        Tool csvEditorTool = new Tool("CSV Editor", new CsvEditorPanel());
+        // Create CSV Editor tool with lazy initialization
+        Tool csvEditorTool = new Tool("CSV Editor", CsvEditorPanel::new, false);
         csvCategory.addChild(csvEditorTool);
         
         // Add to all tools list

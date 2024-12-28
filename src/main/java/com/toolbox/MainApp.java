@@ -15,6 +15,7 @@ public class MainApp extends JFrame {
     private final JTextField searchField;
     private final JTree toolTree;
     private final ToolTreeModel treeModel;
+    private JPanel rightPanel;
 
     public MainApp() {
         super("Desktop Tools");
@@ -51,7 +52,7 @@ public class MainApp extends JFrame {
         leftPanel.add(treeScrollPane, "grow");
         
         // Right content panel
-        JPanel rightPanel = new JPanel(new MigLayout("fill"));
+        rightPanel = new JPanel(new MigLayout("fill"));
         rightPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         rightPanel.add(contentPanel, "grow");
         
@@ -105,8 +106,12 @@ public class MainApp extends JFrame {
     private void showTool(Tool tool) {
         contentPanel.removeAll();
         contentPanel.add(tool.getContent(), "grow");
+        
+        // Revalidate and repaint both panels
         contentPanel.revalidate();
         contentPanel.repaint();
+        rightPanel.revalidate();
+        rightPanel.repaint();
     }
 
     public static void main(String[] args) {
