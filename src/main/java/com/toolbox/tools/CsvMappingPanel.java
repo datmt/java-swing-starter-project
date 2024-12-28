@@ -12,6 +12,8 @@ import java.io.IOException;
 public class CsvMappingPanel extends JPanel {
     private File sourceFile;
     private File targetFile;
+    private JLabel sourceFileLabel;
+    private JLabel targetFileLabel;
     private JComboBox<String> sourceLookupColumnCombo;
     private JComboBox<String> sourceValueColumnCombo;
     private JComboBox<String> targetLookupColumnCombo;
@@ -37,15 +39,25 @@ public class CsvMappingPanel extends JPanel {
         mainPanel.setBorder(BorderFactory.createTitledBorder("CSV Mapping Configuration"));
 
         // File selection
-        JButton selectSourceButton = new JButton("Select Source CSV");
+        JPanel sourceFilePanel = new JPanel(new MigLayout("insets 0, fillx", "[100!][grow,fill]"));
+        JButton selectSourceButton = new JButton("Select");
         selectSourceButton.addActionListener(e -> selectSourceFile());
+        sourceFileLabel = new JLabel("No file selected");
+        sourceFileLabel.setForeground(Color.GRAY);
+        sourceFilePanel.add(selectSourceButton, "width 100!");
+        sourceFilePanel.add(sourceFileLabel);
         mainPanel.add(new JLabel("Source File:"), "right");
-        mainPanel.add(selectSourceButton, "growx");
+        mainPanel.add(sourceFilePanel, "growx");
 
-        JButton selectTargetButton = new JButton("Select Target CSV");
+        JPanel targetFilePanel = new JPanel(new MigLayout("insets 0, fillx", "[100!][grow,fill]"));
+        JButton selectTargetButton = new JButton("Select");
         selectTargetButton.addActionListener(e -> selectTargetFile());
+        targetFileLabel = new JLabel("No file selected");
+        targetFileLabel.setForeground(Color.GRAY);
+        targetFilePanel.add(selectTargetButton, "width 100!");
+        targetFilePanel.add(targetFileLabel);
         mainPanel.add(new JLabel("Target File:"), "right");
-        mainPanel.add(selectTargetButton, "growx");
+        mainPanel.add(targetFilePanel, "growx");
 
         // Column selection
         sourceLookupColumnCombo = new JComboBox<>();
@@ -104,6 +116,8 @@ public class CsvMappingPanel extends JPanel {
 
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             sourceFile = fileChooser.getSelectedFile();
+            sourceFileLabel.setText(sourceFile.getName());
+            sourceFileLabel.setForeground(Color.BLACK);
             updateSourceColumns();
             checkEnableMapping();
         }
@@ -122,6 +136,8 @@ public class CsvMappingPanel extends JPanel {
 
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             targetFile = fileChooser.getSelectedFile();
+            targetFileLabel.setText(targetFile.getName());
+            targetFileLabel.setForeground(Color.BLACK);
             updateTargetColumns();
             checkEnableMapping();
         }
