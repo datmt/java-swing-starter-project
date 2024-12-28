@@ -35,9 +35,9 @@ public class CsvEditorPanel extends JPanel {
     private JButton replaceButton;
     private JButton replaceAllButton;
     private JCheckBox matchCaseCheckBox;
-    private int currentSearchRow = -1;
-    private int currentSearchCol = -1;
+    private JCheckBox exactMatchCheckBox;
     private List<Point> matchingCells = new ArrayList<>();
+    private int currentMatchIndex = -1;
 
     public CsvEditorPanel() {
         setLayout(new BorderLayout(0, 0));
@@ -65,7 +65,7 @@ public class CsvEditorPanel extends JPanel {
         viewModeButton.addActionListener(e -> toggleViewMode(viewModeButton));
 
         // Search and Replace Panel
-        JPanel searchPanel = new JPanel(new MigLayout("insets 0, gap 2", "[][grow][]2[]"));
+        JPanel searchPanel = new JPanel(new MigLayout("insets 0, gap 2", "[][grow][]2[]", "[]2[]"));
         
         searchField = new JTextField(20);
         replaceField = new JTextField(20);
@@ -88,6 +88,10 @@ public class CsvEditorPanel extends JPanel {
         matchCaseCheckBox = new JCheckBox("Aa");
         matchCaseCheckBox.setToolTipText("Match Case");
         
+        exactMatchCheckBox = new JCheckBox("Exact");
+        exactMatchCheckBox.setToolTipText("Match Entire Cell Content");
+        exactMatchCheckBox.addActionListener(e -> updateSearch());
+
         // First row: file controls and view mode
         topPanel.add(openButton, "cell 0 0");
         topPanel.add(saveButton, "cell 1 0");
@@ -98,7 +102,8 @@ public class CsvEditorPanel extends JPanel {
         searchPanel.add(new JLabel("Find:"), "");
         searchPanel.add(searchField, "growx");
         searchPanel.add(findNextButton, "");
-        searchPanel.add(matchCaseCheckBox, "wrap");
+        searchPanel.add(matchCaseCheckBox, "");
+        searchPanel.add(exactMatchCheckBox, "wrap");
         
         searchPanel.add(new JLabel("Replace:"), "");
         searchPanel.add(replaceField, "growx");
@@ -132,6 +137,8 @@ public class CsvEditorPanel extends JPanel {
             }
         };
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        table.setFillsViewportHeight(true); // Make table fill available height
+        
         JScrollPane tableScrollPane = new JScrollPane(table);
         tableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         tableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
@@ -150,257 +157,296 @@ public class CsvEditorPanel extends JPanel {
         textPanel.add(textScrollPane, BorderLayout.CENTER);
         contentPanel.add(textPanel, "text");
 
+        // Add content panel with "push" constraint to make it fill available space
         add(contentPanel, BorderLayout.CENTER);
-
-        // Initialize search listeners
+        
+        // Set minimum size to ensure reasonable display
+        setMinimumSize(new Dimension(400, 300));
+        setPreferredSize(new Dimension(800, 600));
+        
         setupSearchListeners();
     }
 
     private void setupSearchListeners() {
-        findNextButton.addActionListener(e -> findNext());
-        replaceButton.addActionListener(e -> replace());
-        replaceAllButton.addActionListener(e -> replaceAll());
-        
-        // Reset search when search text changes
+        // Search field listener
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
-                resetSearch();
+                updateSearch();
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-                resetSearch();
+                updateSearch();
             }
 
             @Override
             public void changedUpdate(DocumentEvent e) {
-                resetSearch();
+                updateSearch();
             }
         });
+
+        // Find next button
+        findNextButton.addActionListener(e -> findNext());
+
+        // Replace button
+        replaceButton.addActionListener(e -> replaceSelected());
+
+        // Replace all button
+        replaceAllButton.addActionListener(e -> replaceAll());
     }
 
-    private void resetSearch() {
-        currentSearchRow = -1;
-        currentSearchCol = -1;
+    private void updateSearch() {
         matchingCells.clear();
-        table.repaint();
-    }
-
-    private void findNext() {
+        currentMatchIndex = -1;
         String searchText = searchField.getText();
-        if (searchText.isEmpty() || !isSpreadsheetMode) return;
+        
+        if (searchText.isEmpty()) {
+            table.repaint();
+            return;
+        }
 
         DefaultTableModel model = (DefaultTableModel) table.getModel();
-        boolean matchCase = matchCaseCheckBox.isSelected();
+        boolean caseSensitive = matchCaseCheckBox.isSelected();
+        boolean exactMatch = exactMatchCheckBox.isSelected();
         
-        // Start from current position or beginning
-        int startRow = currentSearchRow;
-        int startCol = currentSearchCol + 1;
-        
-        // Search through all cells
-        boolean found = false;
-        matchingCells.clear();
-        
-        // First, collect all matches
+        if (!caseSensitive) {
+            searchText = searchText.toLowerCase();
+        }
+
         for (int row = 0; row < model.getRowCount(); row++) {
             for (int col = 0; col < model.getColumnCount(); col++) {
                 Object value = model.getValueAt(row, col);
                 if (value != null) {
                     String cellText = value.toString();
-                    if (!matchCase) {
+                    if (!caseSensitive) {
                         cellText = cellText.toLowerCase();
-                        searchText = searchText.toLowerCase();
                     }
-                    if (cellText.contains(searchText)) {
+                    
+                    boolean matches;
+                    if (exactMatch) {
+                        matches = cellText.equals(searchText);
+                    } else {
+                        matches = cellText.contains(searchText);
+                    }
+                    
+                    if (matches) {
                         matchingCells.add(new Point(row, col));
                     }
                 }
             }
         }
-        
-        // Find next match from current position
-        for (Point match : matchingCells) {
-            if ((match.x > startRow) || (match.x == startRow && match.y > startCol)) {
-                currentSearchRow = match.x;
-                currentSearchCol = match.y;
-                found = true;
-                break;
-            }
-        }
-        
-        // Wrap around if necessary
-        if (!found && !matchingCells.isEmpty()) {
-            Point firstMatch = matchingCells.get(0);
-            currentSearchRow = firstMatch.x;
-            currentSearchCol = firstMatch.y;
-            found = true;
-        }
-        
-        if (found) {
-            // Select and scroll to the found cell
-            table.setRowSelectionInterval(currentSearchRow, currentSearchRow);
-            table.setColumnSelectionInterval(currentSearchCol, currentSearchCol);
-            table.scrollRectToVisible(table.getCellRect(currentSearchRow, currentSearchCol, true));
-        } else {
-            JOptionPane.showMessageDialog(this,
-                "No matches found for: " + searchText,
-                "Search Result",
-                JOptionPane.INFORMATION_MESSAGE);
-            resetSearch();
-        }
-        
         table.repaint();
+        if (!matchingCells.isEmpty()) {
+            findNext(); // Move to first match
+        }
     }
 
-    private void replace() {
-        if (!isSpreadsheetMode || currentSearchRow < 0 || currentSearchCol < 0) return;
+    private void findNext() {
+        if (matchingCells.isEmpty()) {
+            return;
+        }
         
-        DefaultTableModel model = (DefaultTableModel) table.getModel();
-        String replaceText = replaceField.getText();
+        currentMatchIndex = (currentMatchIndex + 1) % matchingCells.size();
+        Point match = matchingCells.get(currentMatchIndex);
         
-        model.setValueAt(replaceText, currentSearchRow, currentSearchCol);
-        findNext(); // Move to next match
+        // Select and scroll to the cell
+        table.setRowSelectionInterval(match.x, match.x);
+        table.setColumnSelectionInterval(match.y, match.y);
+        table.scrollRectToVisible(table.getCellRect(match.x, match.y, true));
     }
 
-    private void replaceAll() {
-        String searchText = searchField.getText();
-        String replaceText = replaceField.getText();
-        if (searchText.isEmpty() || !isSpreadsheetMode) return;
-
-        DefaultTableModel model = (DefaultTableModel) table.getModel();
-        boolean matchCase = matchCaseCheckBox.isSelected();
-        int replacements = 0;
-        
-        for (int row = 0; row < model.getRowCount(); row++) {
-            for (int col = 0; col < model.getColumnCount(); col++) {
-                Object value = model.getValueAt(row, col);
+    private void replaceSelected() {
+        if (currentMatchIndex >= 0 && currentMatchIndex < matchingCells.size()) {
+            Point match = matchingCells.get(currentMatchIndex);
+            String replaceText = replaceField.getText();
+            
+            // If in exact match mode, replace the entire cell
+            if (exactMatchCheckBox.isSelected()) {
+                table.setValueAt(replaceText, match.x, match.y);
+            } else {
+                // Otherwise, replace only the matching portion
+                Object value = table.getValueAt(match.x, match.y);
                 if (value != null) {
                     String cellText = value.toString();
-                    String compareCellText = matchCase ? cellText : cellText.toLowerCase();
-                    String compareSearchText = matchCase ? searchText : searchText.toLowerCase();
+                    String searchText = searchField.getText();
                     
-                    if (compareCellText.contains(compareSearchText)) {
+                    if (!matchCaseCheckBox.isSelected()) {
+                        String cellTextLower = cellText.toLowerCase();
+                        String searchTextLower = searchText.toLowerCase();
+                        int start = cellTextLower.indexOf(searchTextLower);
+                        if (start >= 0) {
+                            String newText = cellText.substring(0, start) + 
+                                           replaceText + 
+                                           cellText.substring(start + searchText.length());
+                            table.setValueAt(newText, match.x, match.y);
+                        }
+                    } else {
                         String newText = cellText.replace(searchText, replaceText);
-                        model.setValueAt(newText, row, col);
-                        replacements++;
+                        table.setValueAt(newText, match.x, match.y);
                     }
                 }
             }
+            
+            // Update search to reflect changes
+            updateSearch();
         }
-        
-        resetSearch();
-        JOptionPane.showMessageDialog(this,
-            String.format("Replaced %d occurrence%s", replacements, replacements == 1 ? "" : "s"),
-            "Replace Complete",
-            JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void replaceAll() {
+        while (!matchingCells.isEmpty()) {
+            currentMatchIndex = 0;
+            replaceSelected();
+        }
     }
 
     private void toggleViewMode(JToggleButton button) {
-        isSpreadsheetMode = !isSpreadsheetMode;
+        isSpreadsheetMode = !button.isSelected();
+        
         if (isSpreadsheetMode) {
-            button.setText("Text");
-            button.setToolTipText("Switch to Text Mode");
             updateTableFromText();
+            button.setText("Text");
             cardLayout.show(contentPanel, "spreadsheet");
         } else {
-            button.setText("Table");
-            button.setToolTipText("Switch to Spreadsheet Mode");
             updateTextFromTable();
+            button.setText("Table");
             cardLayout.show(contentPanel, "text");
         }
-        resetSearch(); // Clear search highlights when switching modes
+        
+        // Clear search state when switching views
+        clearSearchState();
+        searchField.setText("");
+    }
+
+    private void clearSearchState() {
+        matchingCells.clear();
+        currentMatchIndex = -1;
+        if (table != null) {
+            table.clearSelection();
+            table.repaint();
+        }
     }
 
     private void openFile() {
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
-            public boolean accept(File f) {
-                return f.isDirectory() || f.getName().toLowerCase().endsWith(".csv");
-            }
-            public String getDescription() {
-                return "CSV Files (*.csv)";
-            }
-        });
-
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("CSV Files", "csv"));
+        
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            currentFile = fileChooser.getSelectedFile();
-            loadFile();
+            try (BufferedReader reader = new BufferedReader(new FileReader(fileChooser.getSelectedFile()))) {
+                // Clear existing data
+                DefaultTableModel model = (DefaultTableModel) table.getModel();
+                model.setRowCount(0);
+                model.setColumnCount(0);
+                
+                // Read header
+                String headerLine = reader.readLine();
+                if (headerLine != null) {
+                    String[] headers = parseCsvLine(headerLine);
+                    for (String header : headers) {
+                        model.addColumn(header);
+                    }
+                }
+                
+                // Read data
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    model.addRow(parseCsvLine(line));
+                }
+                
+                // Clear search state and update UI
+                clearSearchState();
+                searchField.setText("");
+                
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this,
+                    "Error reading file: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
-    private void loadFile() {
-        try (CSVReader reader = new CSVReader(new FileReader(currentFile))) {
-            List<String[]> allRows = reader.readAll();
+    private String[] parseCsvLine(String line) {
+        List<String> result = new ArrayList<>();
+        StringBuilder currentValue = new StringBuilder();
+        boolean inQuotes = false;
+        
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
             
-            if (allRows.isEmpty()) {
-                showError("Empty CSV file");
-                return;
+            if (c == '"') {
+                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                    // Double quotes inside quoted string = escaped quote
+                    currentValue.append('"');
+                    i++; // Skip the next quote
+                } else {
+                    // Toggle quote mode
+                    inQuotes = !inQuotes;
+                }
+            } else if (c == ',' && !inQuotes) {
+                // End of value
+                result.add(currentValue.toString().trim());
+                currentValue.setLength(0);
+            } else {
+                currentValue.append(c);
             }
-
-            // Update table view
-            String[] headers = allRows.get(0);
-            DefaultTableModel model = new DefaultTableModel(headers, 0);
-            allRows.stream().skip(1).forEach(model::addRow);
-            table.setModel(model);
-
-            // Update text view
-            updateTextFromTable();
-
-        } catch (IOException | CsvException e) {
-            showError("Error loading file: " + e.getMessage());
         }
+        
+        // Add the last value
+        result.add(currentValue.toString().trim());
+        
+        return result.toArray(new String[0]);
     }
 
     private void saveFile() {
-        if (currentFile == null) {
-            JFileChooser fileChooser = new JFileChooser();
-            if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-                currentFile = fileChooser.getSelectedFile();
-                if (!currentFile.getName().toLowerCase().endsWith(".csv")) {
-                    currentFile = new File(currentFile.getAbsolutePath() + ".csv");
-                }
-            } else {
-                return;
-            }
-        }
-
-        try {
-            if (!isSpreadsheetMode) {
-                updateTableFromText();
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("CSV Files", "csv"));
+        
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            if (!file.getName().toLowerCase().endsWith(".csv")) {
+                file = new File(file.getParentFile(), file.getName() + ".csv");
             }
             
-            try (CSVWriter writer = new CSVWriter(new FileWriter(currentFile))) {
+            try (PrintWriter writer = new PrintWriter(file)) {
                 DefaultTableModel model = (DefaultTableModel) table.getModel();
                 
                 // Write headers
-                Vector<String> headers = new Vector<>();
-                for (int i = 0; i < model.getColumnCount(); i++) {
-                    headers.add(model.getColumnName(i));
+                for (int col = 0; col < model.getColumnCount(); col++) {
+                    if (col > 0) writer.print(",");
+                    writeValue(writer, model.getColumnName(col));
                 }
-                writer.writeNext(headers.stream()
-                    .map(Object::toString)
-                    .toArray(String[]::new));
+                writer.println();
                 
                 // Write data
-                for (int i = 0; i < model.getRowCount(); i++) {
-                    String[] row = new String[model.getColumnCount()];
-                    for (int j = 0; j < model.getColumnCount(); j++) {
-                        Object value = model.getValueAt(i, j);
-                        row[j] = value != null ? value.toString() : "";
+                for (int row = 0; row < model.getRowCount(); row++) {
+                    for (int col = 0; col < model.getColumnCount(); col++) {
+                        if (col > 0) writer.print(",");
+                        Object value = model.getValueAt(row, col);
+                        writeValue(writer, value != null ? value.toString() : "");
                     }
-                    writer.writeNext(row);
+                    writer.println();
                 }
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this,
+                    "Error saving file: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
             }
-            
-            JOptionPane.showMessageDialog(this, 
-                "File saved successfully!", 
-                "Success", 
-                JOptionPane.INFORMATION_MESSAGE);
-                
-        } catch (IOException e) {
-            showError("Error saving file: " + e.getMessage());
         }
+    }
+
+    private void writeValue(PrintWriter writer, String value) {
+        boolean needsQuotes = value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r");
+        
+        if (!needsQuotes) {
+            writer.print(value);
+            return;
+        }
+        
+        writer.print('"');
+        writer.print(value.replace("\"", "\"\""));
+        writer.print('"');
     }
 
     private void updateTextFromTable() {
@@ -410,7 +456,7 @@ public class CsvEditorPanel extends JPanel {
         // Headers
         for (int i = 0; i < model.getColumnCount(); i++) {
             if (i > 0) sb.append(",");
-            sb.append(escapeCSV(model.getColumnName(i)));
+            sb.append(model.getColumnName(i));
         }
         sb.append("\n");
         
@@ -419,7 +465,7 @@ public class CsvEditorPanel extends JPanel {
             for (int j = 0; j < model.getColumnCount(); j++) {
                 if (j > 0) sb.append(",");
                 Object value = model.getValueAt(i, j);
-                sb.append(escapeCSV(value != null ? value.toString() : ""));
+                sb.append(value != null ? value.toString() : "");
             }
             sb.append("\n");
         }
@@ -436,10 +482,7 @@ public class CsvEditorPanel extends JPanel {
 
         try {
             List<String[]> rows = Arrays.stream(text.split("\n"))
-                .map(line -> line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)"))
-                .map(row -> Arrays.stream(row)
-                    .map(this::unescapeCSV)
-                    .toArray(String[]::new))
+                .map(line -> parseCsvLine(line))
                 .collect(Collectors.toList());
 
             if (rows.isEmpty()) {
@@ -453,7 +496,10 @@ public class CsvEditorPanel extends JPanel {
             table.setModel(model);
 
         } catch (Exception e) {
-            showError("Error parsing CSV text: " + e.getMessage());
+            JOptionPane.showMessageDialog(this,
+                "Error parsing CSV text: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
         }
     }
 
