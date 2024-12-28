@@ -8,13 +8,18 @@ import net.miginfocom.swing.MigLayout;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.*;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Vector;
 import java.util.stream.Collectors;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 public class CsvEditorPanel extends JPanel {
     private JTable table;
@@ -23,6 +28,15 @@ public class CsvEditorPanel extends JPanel {
     private JPanel contentPanel;
     private File currentFile;
     private boolean isSpreadsheetMode = true;
+    private JTextField searchField;
+    private JTextField replaceField;
+    private JButton findNextButton;
+    private JButton replaceButton;
+    private JButton replaceAllButton;
+    private JCheckBox matchCaseCheckBox;
+    private int currentSearchRow = -1;
+    private int currentSearchCol = -1;
+    private List<Point> matchingCells = new ArrayList<>();
 
     public CsvEditorPanel() {
         setLayout(new BorderLayout(10, 10));
@@ -41,9 +55,30 @@ public class CsvEditorPanel extends JPanel {
         JToggleButton viewModeButton = new JToggleButton("Switch to Text Mode");
         viewModeButton.addActionListener(e -> toggleViewMode(viewModeButton));
 
+        // Search and Replace Panel
+        JPanel searchPanel = new JPanel(new MigLayout("fillx", "[][grow][]"));
+        searchPanel.setBorder(BorderFactory.createTitledBorder("Search & Replace"));
+        
+        searchField = new JTextField(20);
+        replaceField = new JTextField(20);
+        findNextButton = new JButton("Find Next");
+        replaceButton = new JButton("Replace");
+        replaceAllButton = new JButton("Replace All");
+        matchCaseCheckBox = new JCheckBox("Match Case");
+        
+        searchPanel.add(new JLabel("Find:"), "right");
+        searchPanel.add(searchField, "growx");
+        searchPanel.add(findNextButton, "wrap");
+        searchPanel.add(new JLabel("Replace:"), "right");
+        searchPanel.add(replaceField, "growx");
+        searchPanel.add(replaceButton, "split 2");
+        searchPanel.add(replaceAllButton, "wrap");
+        searchPanel.add(matchCaseCheckBox, "skip 1");
+
         controlPanel.add(openButton);
         controlPanel.add(saveButton);
-        controlPanel.add(viewModeButton, "right");
+        controlPanel.add(viewModeButton, "right, wrap");
+        controlPanel.add(searchPanel, "span, growx");
         
         add(controlPanel, BorderLayout.NORTH);
 
@@ -51,8 +86,24 @@ public class CsvEditorPanel extends JPanel {
         cardLayout = new CardLayout();
         contentPanel = new JPanel(cardLayout);
 
-        // Initialize table
-        table = new JTable();
+        // Initialize table with custom renderer for highlighting
+        table = new JTable() {
+            @Override
+            public Component prepareRenderer(TableCellRenderer renderer, int row, int col) {
+                Component comp = super.prepareRenderer(renderer, row, col);
+                if (isCellSelected(row, col)) {
+                    comp.setBackground(getSelectionBackground());
+                    comp.setForeground(getSelectionForeground());
+                } else if (matchingCells.contains(new Point(row, col))) {
+                    comp.setBackground(new Color(255, 255, 0, 100)); // Light yellow highlight
+                    comp.setForeground(getForeground());
+                } else {
+                    comp.setBackground(getBackground());
+                    comp.setForeground(getForeground());
+                }
+                return comp;
+            }
+        };
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         JScrollPane tableScrollPane = new JScrollPane(table);
         tableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
@@ -67,6 +118,149 @@ public class CsvEditorPanel extends JPanel {
         contentPanel.add(textScrollPane, "text");
 
         add(contentPanel, BorderLayout.CENTER);
+
+        // Initialize search listeners
+        setupSearchListeners();
+    }
+
+    private void setupSearchListeners() {
+        findNextButton.addActionListener(e -> findNext());
+        replaceButton.addActionListener(e -> replace());
+        replaceAllButton.addActionListener(e -> replaceAll());
+        
+        // Reset search when search text changes
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                resetSearch();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                resetSearch();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                resetSearch();
+            }
+        });
+    }
+
+    private void resetSearch() {
+        currentSearchRow = -1;
+        currentSearchCol = -1;
+        matchingCells.clear();
+        table.repaint();
+    }
+
+    private void findNext() {
+        String searchText = searchField.getText();
+        if (searchText.isEmpty() || !isSpreadsheetMode) return;
+
+        DefaultTableModel model = (DefaultTableModel) table.getModel();
+        boolean matchCase = matchCaseCheckBox.isSelected();
+        
+        // Start from current position or beginning
+        int startRow = currentSearchRow;
+        int startCol = currentSearchCol + 1;
+        
+        // Search through all cells
+        boolean found = false;
+        matchingCells.clear();
+        
+        // First, collect all matches
+        for (int row = 0; row < model.getRowCount(); row++) {
+            for (int col = 0; col < model.getColumnCount(); col++) {
+                Object value = model.getValueAt(row, col);
+                if (value != null) {
+                    String cellText = value.toString();
+                    if (!matchCase) {
+                        cellText = cellText.toLowerCase();
+                        searchText = searchText.toLowerCase();
+                    }
+                    if (cellText.contains(searchText)) {
+                        matchingCells.add(new Point(row, col));
+                    }
+                }
+            }
+        }
+        
+        // Find next match from current position
+        for (Point match : matchingCells) {
+            if ((match.x > startRow) || (match.x == startRow && match.y > startCol)) {
+                currentSearchRow = match.x;
+                currentSearchCol = match.y;
+                found = true;
+                break;
+            }
+        }
+        
+        // Wrap around if necessary
+        if (!found && !matchingCells.isEmpty()) {
+            Point firstMatch = matchingCells.get(0);
+            currentSearchRow = firstMatch.x;
+            currentSearchCol = firstMatch.y;
+            found = true;
+        }
+        
+        if (found) {
+            // Select and scroll to the found cell
+            table.setRowSelectionInterval(currentSearchRow, currentSearchRow);
+            table.setColumnSelectionInterval(currentSearchCol, currentSearchCol);
+            table.scrollRectToVisible(table.getCellRect(currentSearchRow, currentSearchCol, true));
+        } else {
+            JOptionPane.showMessageDialog(this,
+                "No matches found for: " + searchText,
+                "Search Result",
+                JOptionPane.INFORMATION_MESSAGE);
+            resetSearch();
+        }
+        
+        table.repaint();
+    }
+
+    private void replace() {
+        if (!isSpreadsheetMode || currentSearchRow < 0 || currentSearchCol < 0) return;
+        
+        DefaultTableModel model = (DefaultTableModel) table.getModel();
+        String replaceText = replaceField.getText();
+        
+        model.setValueAt(replaceText, currentSearchRow, currentSearchCol);
+        findNext(); // Move to next match
+    }
+
+    private void replaceAll() {
+        String searchText = searchField.getText();
+        String replaceText = replaceField.getText();
+        if (searchText.isEmpty() || !isSpreadsheetMode) return;
+
+        DefaultTableModel model = (DefaultTableModel) table.getModel();
+        boolean matchCase = matchCaseCheckBox.isSelected();
+        int replacements = 0;
+        
+        for (int row = 0; row < model.getRowCount(); row++) {
+            for (int col = 0; col < model.getColumnCount(); col++) {
+                Object value = model.getValueAt(row, col);
+                if (value != null) {
+                    String cellText = value.toString();
+                    String compareCellText = matchCase ? cellText : cellText.toLowerCase();
+                    String compareSearchText = matchCase ? searchText : searchText.toLowerCase();
+                    
+                    if (compareCellText.contains(compareSearchText)) {
+                        String newText = cellText.replace(searchText, replaceText);
+                        model.setValueAt(newText, row, col);
+                        replacements++;
+                    }
+                }
+            }
+        }
+        
+        resetSearch();
+        JOptionPane.showMessageDialog(this,
+            String.format("Replaced %d occurrence%s", replacements, replacements == 1 ? "" : "s"),
+            "Replace Complete",
+            JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void toggleViewMode(JToggleButton button) {
@@ -80,6 +274,7 @@ public class CsvEditorPanel extends JPanel {
             updateTextFromTable();
             cardLayout.show(contentPanel, "text");
         }
+        resetSearch(); // Clear search highlights when switching modes
     }
 
     private void openFile() {
