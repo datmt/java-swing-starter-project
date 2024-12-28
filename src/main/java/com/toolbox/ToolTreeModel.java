@@ -1,6 +1,7 @@
 package com.toolbox;
 
 import com.toolbox.tools.CsvMappingPanel;
+import com.toolbox.tools.CsvEditorPanel;
 import com.toolbox.tools.JsonToCsvPanel;
 
 import javax.swing.*;
@@ -39,16 +40,22 @@ public class ToolTreeModel extends DefaultTreeModel {
         // Create CSV Mapping tool with its panel
         Tool csvMappingTool = new Tool("CSV Mapping", new CsvMappingPanel());
         csvCategory.addChild(csvMappingTool);
+
+        // Create CSV Editor tool with its panel
+        Tool csvEditorTool = new Tool("CSV Editor", new CsvEditorPanel());
+        csvCategory.addChild(csvEditorTool);
         
         // Add to all tools list
         allTools.add(jsonCategory);
         allTools.add(jsonToCsvTool);
         allTools.add(csvCategory);
         allTools.add(csvMappingTool);
+        allTools.add(csvEditorTool);
         
         // Add to tool panels map
         toolPanels.put("JSON to CSV", JsonToCsvPanel.class);
         toolPanels.put("CSV Mapping", CsvMappingPanel.class);
+        toolPanels.put("CSV Editor", CsvEditorPanel.class);
         
         // Build tree structure
         buildTreeNodes();
