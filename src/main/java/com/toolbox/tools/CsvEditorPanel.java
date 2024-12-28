@@ -3,6 +3,7 @@ package com.toolbox.tools;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvException;
+import com.toolbox.utils.Icons;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
@@ -39,48 +40,74 @@ public class CsvEditorPanel extends JPanel {
     private List<Point> matchingCells = new ArrayList<>();
 
     public CsvEditorPanel() {
-        setLayout(new BorderLayout(10, 10));
-        setBorder(new EmptyBorder(20, 20, 20, 20));
+        setLayout(new BorderLayout(0, 0));
+        setBorder(new EmptyBorder(5, 5, 5, 5));
 
         // Top panel with controls
-        JPanel controlPanel = new JPanel(new MigLayout("fillx", "[left][center, grow][right]"));
+        JPanel topPanel = new JPanel(new MigLayout("insets 0, gap 2", "[left]2[left]2[center,grow]0[right]", "[]0[]"));
         
-        // File controls
-        JButton openButton = new JButton("Open CSV");
+        // File controls with small fixed size buttons
+        JButton openButton = new JButton();
+        openButton.setIcon(Icons.OPEN);
+        openButton.setPreferredSize(new Dimension(28, 28));
+        openButton.setToolTipText("Open CSV File");
         openButton.addActionListener(e -> openFile());
-        JButton saveButton = new JButton("Save");
+        
+        JButton saveButton = new JButton();
+        saveButton.setIcon(Icons.SAVE);
+        saveButton.setPreferredSize(new Dimension(28, 28));
+        saveButton.setToolTipText("Save CSV File");
         saveButton.addActionListener(e -> saveFile());
         
         // View mode toggle
-        JToggleButton viewModeButton = new JToggleButton("Switch to Text Mode");
+        JToggleButton viewModeButton = new JToggleButton("Text");
+        viewModeButton.setToolTipText("Switch between Spreadsheet and Text mode");
         viewModeButton.addActionListener(e -> toggleViewMode(viewModeButton));
 
         // Search and Replace Panel
-        JPanel searchPanel = new JPanel(new MigLayout("fillx", "[][grow][]"));
-        searchPanel.setBorder(BorderFactory.createTitledBorder("Search & Replace"));
+        JPanel searchPanel = new JPanel(new MigLayout("insets 0, gap 2", "[][grow][]2[]"));
         
         searchField = new JTextField(20);
         replaceField = new JTextField(20);
-        findNextButton = new JButton("Find Next");
-        replaceButton = new JButton("Replace");
-        replaceAllButton = new JButton("Replace All");
-        matchCaseCheckBox = new JCheckBox("Match Case");
         
-        searchPanel.add(new JLabel("Find:"), "right");
+        findNextButton = new JButton();
+        findNextButton.setIcon(Icons.FIND);
+        findNextButton.setPreferredSize(new Dimension(28, 28));
+        findNextButton.setToolTipText("Find Next");
+        
+        replaceButton = new JButton();
+        replaceButton.setIcon(Icons.REPLACE);
+        replaceButton.setPreferredSize(new Dimension(28, 28));
+        replaceButton.setToolTipText("Replace");
+        
+        replaceAllButton = new JButton();
+        replaceAllButton.setIcon(Icons.REPLACE_ALL);
+        replaceAllButton.setPreferredSize(new Dimension(28, 28));
+        replaceAllButton.setToolTipText("Replace All");
+        
+        matchCaseCheckBox = new JCheckBox("Aa");
+        matchCaseCheckBox.setToolTipText("Match Case");
+        
+        // First row: file controls and view mode
+        topPanel.add(openButton, "cell 0 0");
+        topPanel.add(saveButton, "cell 1 0");
+        topPanel.add(new JLabel(), "cell 2 0, growx"); // Spacer
+        topPanel.add(viewModeButton, "cell 3 0");
+
+        // Second row: search and replace
+        searchPanel.add(new JLabel("Find:"), "");
         searchPanel.add(searchField, "growx");
-        searchPanel.add(findNextButton, "wrap");
-        searchPanel.add(new JLabel("Replace:"), "right");
+        searchPanel.add(findNextButton, "");
+        searchPanel.add(matchCaseCheckBox, "wrap");
+        
+        searchPanel.add(new JLabel("Replace:"), "");
         searchPanel.add(replaceField, "growx");
         searchPanel.add(replaceButton, "split 2");
-        searchPanel.add(replaceAllButton, "wrap");
-        searchPanel.add(matchCaseCheckBox, "skip 1");
-
-        controlPanel.add(openButton);
-        controlPanel.add(saveButton);
-        controlPanel.add(viewModeButton, "right, wrap");
-        controlPanel.add(searchPanel, "span, growx");
+        searchPanel.add(replaceAllButton, "");
         
-        add(controlPanel, BorderLayout.NORTH);
+        topPanel.add(searchPanel, "cell 0 1 4 1, growx");
+        
+        add(topPanel, BorderLayout.NORTH);
 
         // Content panel with card layout
         cardLayout = new CardLayout();
@@ -106,16 +133,22 @@ public class CsvEditorPanel extends JPanel {
         };
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         JScrollPane tableScrollPane = new JScrollPane(table);
-        tableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-        tableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        tableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        tableScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
         // Initialize text area
         textArea = new JTextArea();
         textArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         JScrollPane textScrollPane = new JScrollPane(textArea);
 
-        contentPanel.add(tableScrollPane, "spreadsheet");
-        contentPanel.add(textScrollPane, "text");
+        // Add scroll panes to content panel
+        JPanel spreadsheetPanel = new JPanel(new BorderLayout());
+        spreadsheetPanel.add(tableScrollPane, BorderLayout.CENTER);
+        contentPanel.add(spreadsheetPanel, "spreadsheet");
+        
+        JPanel textPanel = new JPanel(new BorderLayout());
+        textPanel.add(textScrollPane, BorderLayout.CENTER);
+        contentPanel.add(textPanel, "text");
 
         add(contentPanel, BorderLayout.CENTER);
 
@@ -266,11 +299,13 @@ public class CsvEditorPanel extends JPanel {
     private void toggleViewMode(JToggleButton button) {
         isSpreadsheetMode = !isSpreadsheetMode;
         if (isSpreadsheetMode) {
-            button.setText("Switch to Text Mode");
+            button.setText("Text");
+            button.setToolTipText("Switch to Text Mode");
             updateTableFromText();
             cardLayout.show(contentPanel, "spreadsheet");
         } else {
-            button.setText("Switch to Spreadsheet Mode");
+            button.setText("Table");
+            button.setToolTipText("Switch to Spreadsheet Mode");
             updateTextFromTable();
             cardLayout.show(contentPanel, "text");
         }
