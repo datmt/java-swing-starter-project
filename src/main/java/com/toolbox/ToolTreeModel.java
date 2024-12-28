@@ -1,21 +1,27 @@
 package com.toolbox;
 
+import com.toolbox.tools.CsvMappingPanel;
 import com.toolbox.tools.JsonToCsvPanel;
 
 import javax.swing.*;
-import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ToolTreeModel extends DefaultTreeModel {
     private final List<Tool> allTools;
+    private final Map<String, Class<?>> toolPanels;
     private final DefaultMutableTreeNode rootNode;
 
     public ToolTreeModel() {
         super(new DefaultMutableTreeNode("Tools"));
         this.rootNode = (DefaultMutableTreeNode) getRoot();
         this.allTools = new ArrayList<>();
+        this.toolPanels = new HashMap<>();
         initializeTools();
     }
 
@@ -27,9 +33,22 @@ public class ToolTreeModel extends DefaultTreeModel {
         Tool jsonToCsvTool = new Tool("JSON to CSV", new JsonToCsvPanel());
         jsonCategory.addChild(jsonToCsvTool);
         
+        // Create CSV category
+        Tool csvCategory = new Tool("CSV Tools", new JPanel(), true);
+        
+        // Create CSV Mapping tool with its panel
+        Tool csvMappingTool = new Tool("CSV Mapping", new CsvMappingPanel());
+        csvCategory.addChild(csvMappingTool);
+        
         // Add to all tools list
         allTools.add(jsonCategory);
         allTools.add(jsonToCsvTool);
+        allTools.add(csvCategory);
+        allTools.add(csvMappingTool);
+        
+        // Add to tool panels map
+        toolPanels.put("JSON to CSV", JsonToCsvPanel.class);
+        toolPanels.put("CSV Mapping", CsvMappingPanel.class);
         
         // Build tree structure
         buildTreeNodes();
@@ -83,6 +102,21 @@ public class ToolTreeModel extends DefaultTreeModel {
         Object userObject = node.getUserObject();
         if (userObject instanceof Tool) {
             return (Tool) userObject;
+        }
+        return null;
+    }
+
+    public Class<?> getToolPanelClass(TreePath path) {
+        if (path == null) return null;
+        
+        Object lastComponent = path.getLastPathComponent();
+        if (lastComponent instanceof DefaultMutableTreeNode) {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) lastComponent;
+            Object userObject = node.getUserObject();
+            if (userObject instanceof Tool) {
+                Tool tool = (Tool) userObject;
+                return tool.getContent().getClass();
+            }
         }
         return null;
     }
