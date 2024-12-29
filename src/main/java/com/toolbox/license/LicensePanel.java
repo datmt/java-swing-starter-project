@@ -8,14 +8,20 @@ public class LicensePanel extends JPanel {
     private final JTextField licenseKeyField;
     private final JButton activateButton;
     private final JLabel statusLabel;
+    private final JPanel statusPanel;
 
     public LicensePanel() {
-        setLayout(new MigLayout("fillx, insets 20", "[grow]", "[]20[]20[]"));
+        setLayout(new MigLayout("fillx, insets 20", "[grow]", "[]20[]20[]20[]20[]"));
 
         // Title
         JLabel titleLabel = new JLabel("License Activation");
         titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 16));
         add(titleLabel, "wrap");
+
+        // Status panel
+        statusPanel = new JPanel(new MigLayout("fillx", "[right][grow]", "[]5[]5[]5[]"));
+        statusPanel.setBorder(BorderFactory.createTitledBorder("License Status"));
+        add(statusPanel, "span, growx, wrap");
 
         // License key input
         JPanel inputPanel = new JPanel(new MigLayout("fillx", "[100]10[grow]", "[]"));
@@ -91,6 +97,33 @@ public class LicensePanel extends JPanel {
         activateButton.setEnabled(false);
         activateButton.setText("Activated");
         showSuccess("License activated");
+
+        statusPanel.removeAll();
+        statusPanel.add(new JLabel("Status:"), "");
+        JLabel statusLabel = new JLabel("Activated");
+        statusLabel.setForeground(new Color(0, 128, 0));
+        statusPanel.add(statusLabel, "wrap");
+
+        String email = LicenseManager.getEmail();
+        if (email != null && !email.isEmpty()) {
+            statusPanel.add(new JLabel("Email:"), "");
+            statusPanel.add(new JLabel(email), "wrap");
+        }
+
+        String expirationDate = LicenseManager.getExpirationDate();
+        if (expirationDate != null && !expirationDate.isEmpty()) {
+            statusPanel.add(new JLabel("Expires:"), "");
+            statusPanel.add(new JLabel(expirationDate), "wrap");
+        }
+
+        String licenseType = LicenseManager.getLicenseType();
+        if (licenseType != null && !licenseType.isEmpty()) {
+            statusPanel.add(new JLabel("License:"), "");
+            statusPanel.add(new JLabel(licenseType), "wrap");
+        }
+
+        statusPanel.revalidate();
+        statusPanel.repaint();
     }
 
     private void showError(String message) {

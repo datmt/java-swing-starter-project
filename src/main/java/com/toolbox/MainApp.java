@@ -51,10 +51,32 @@ public class MainApp extends JFrame {
         // Add listeners
         setupListeners();
         
-        // Check license on startup
-        if (!LicenseManager.isActivated()) {
-            SwingUtilities.invokeLater(this::showLicenseDialog);
-        }
+        // Validate license on startup
+        SwingWorker<LicenseManager.ActivationResult, Void> worker = new SwingWorker<>() {
+            @Override
+            protected LicenseManager.ActivationResult doInBackground() {
+                return LicenseManager.validateLicense();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    LicenseManager.ActivationResult result = get();
+                    if (!result.isSuccess()) {
+                        SwingUtilities.invokeLater(() -> {
+                            JOptionPane.showMessageDialog(MainApp.this,
+                                "License validation failed: " + result.getError() + "\nPlease reactivate your license.",
+                                "License Invalid",
+                                JOptionPane.WARNING_MESSAGE);
+                            showLicenseDialog();
+                        });
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void setupUI() {
