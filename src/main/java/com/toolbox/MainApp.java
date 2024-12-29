@@ -1,12 +1,15 @@
 package com.toolbox;
 
 import com.formdev.flatlaf.FlatLightLaf;
+import com.toolbox.license.LicenseManager;
+import com.toolbox.license.LicensePanel;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 
@@ -23,6 +26,19 @@ public class MainApp extends JFrame {
         setSize(1024, 768);
         setLocationRelativeTo(null);
 
+        // Create menu bar
+        JMenuBar menuBar = new JMenuBar();
+        JMenu fileMenu = new JMenu("File");
+        JMenu settingsMenu = new JMenu("Settings");
+        
+        JMenuItem activateMenuItem = new JMenuItem("License Activation");
+        activateMenuItem.addActionListener(e -> showLicenseDialog());
+        settingsMenu.add(activateMenuItem);
+        
+        menuBar.add(fileMenu);
+        menuBar.add(settingsMenu);
+        setJMenuBar(menuBar);
+
         // Initialize components
         contentPanel = new JPanel(new MigLayout("fill"));
         searchField = new JTextField(20);
@@ -34,6 +50,11 @@ public class MainApp extends JFrame {
         
         // Add listeners
         setupListeners();
+        
+        // Check license on startup
+        if (!LicenseManager.isActivated()) {
+            SwingUtilities.invokeLater(this::showLicenseDialog);
+        }
     }
 
     private void setupUI() {
@@ -86,11 +107,27 @@ public class MainApp extends JFrame {
             if (path != null) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
                 Tool selectedTool = treeModel.getToolAtNode(node);
-                if (selectedTool != null && !selectedTool.isCategory()) {
-                    showTool(selectedTool);
+                if (selectedTool != null) {
+                    handleToolSelection(selectedTool);
                 }
             }
         });
+    }
+
+    private void handleToolSelection(Tool selectedTool) {
+        if (!selectedTool.isCategory()) {
+            // Check license activation before allowing access to tools
+            if (!LicenseManager.isActivated()) {
+                JOptionPane.showMessageDialog(this,
+                    "Please activate your license to use this feature.",
+                    "License Required",
+                    JOptionPane.WARNING_MESSAGE);
+                
+                showLicenseDialog();
+                return;
+            }
+            showTool(selectedTool);
+        }
     }
 
     private void filterTools() {
@@ -112,6 +149,15 @@ public class MainApp extends JFrame {
         contentPanel.repaint();
         rightPanel.revalidate();
         rightPanel.repaint();
+    }
+
+    private void showLicenseDialog() {
+        JDialog dialog = new JDialog(this, "License Activation", true);
+        dialog.setLayout(new BorderLayout());
+        dialog.add(new LicensePanel(), BorderLayout.CENTER);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
     }
 
     public static void main(String[] args) {

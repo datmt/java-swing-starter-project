@@ -6,6 +6,7 @@ import com.toolbox.tools.JsonToCsvPanel;
 import com.toolbox.tools.CsvMergePanel;
 import com.toolbox.tools.SpreadsheetSearchPanel;
 import com.toolbox.tools.SpreadsheetSearchReplacePanel;
+import com.toolbox.license.LicensePanel;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -34,11 +35,11 @@ public class ToolTreeModel extends DefaultTreeModel {
         Tool jsonCategory = new Tool("JSON Tools", new JPanel(), true);
         
         // Create JSON to CSV tool with its panel
-        Tool jsonToCsvTool = new Tool("JSON to CSV", new JsonToCsvPanel());
+        Tool jsonToCsvTool = new Tool("JSON to CSV", JsonToCsvPanel::new, false);
         jsonCategory.addChild(jsonToCsvTool);
-        
-        // Create Spreadsheet category
-        Tool csvCategory = new Tool("Spreadsheet Tools", new JPanel(), true);
+
+        // Create CSV/Spreadsheet category
+        Tool csvCategory = new Tool("CSV/Spreadsheet Tools", new JPanel(), true);
         
         // Create CSV Mapping tool with its panel
         Tool csvMappingTool = new Tool("CSV Mapping", new CsvMappingPanel());
