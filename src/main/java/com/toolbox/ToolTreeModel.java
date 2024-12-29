@@ -4,6 +4,7 @@ import com.toolbox.tools.CsvMappingPanel;
 import com.toolbox.tools.CsvEditorPanel;
 import com.toolbox.tools.JsonToCsvPanel;
 import com.toolbox.tools.CsvMergePanel;
+import com.toolbox.tools.SpreadsheetSearchPanel;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -35,8 +36,8 @@ public class ToolTreeModel extends DefaultTreeModel {
         Tool jsonToCsvTool = new Tool("JSON to CSV", new JsonToCsvPanel());
         jsonCategory.addChild(jsonToCsvTool);
         
-        // Create CSV category
-        Tool csvCategory = new Tool("CSV Tools", new JPanel(), true);
+        // Create Spreadsheet category
+        Tool csvCategory = new Tool("Spreadsheet Tools", new JPanel(), true);
         
         // Create CSV Mapping tool with its panel
         Tool csvMappingTool = new Tool("CSV Mapping", new CsvMappingPanel());
@@ -49,6 +50,10 @@ public class ToolTreeModel extends DefaultTreeModel {
         // Create CSV Merge tool with lazy initialization
         Tool csvMergeTool = new Tool("CSV Merge", CsvMergePanel::new, false);
         csvCategory.addChild(csvMergeTool);
+
+        // Create Spreadsheet Search tool with lazy initialization
+        Tool spreadsheetSearchTool = new Tool("Spreadsheet Search", SpreadsheetSearchPanel::new, false);
+        csvCategory.addChild(spreadsheetSearchTool);
         
         // Add to all tools list
         allTools.add(jsonCategory);
@@ -57,12 +62,14 @@ public class ToolTreeModel extends DefaultTreeModel {
         allTools.add(csvMappingTool);
         allTools.add(csvEditorTool);
         allTools.add(csvMergeTool);
+        allTools.add(spreadsheetSearchTool);
         
         // Add to tool panels map
         toolPanels.put("JSON to CSV", JsonToCsvPanel.class);
         toolPanels.put("CSV Mapping", CsvMappingPanel.class);
         toolPanels.put("CSV Editor", CsvEditorPanel.class);
         toolPanels.put("CSV Merge", CsvMergePanel.class);
+        toolPanels.put("Spreadsheet Search", SpreadsheetSearchPanel.class);
         
         // Build tree structure
         buildTreeNodes();
