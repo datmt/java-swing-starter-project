@@ -8,6 +8,7 @@ import javax.imageio.ImageIO;
 public class Icons {
     public static final Icon OPEN = createIcon("folder-open", 16);
     public static final Icon SAVE = createIcon("save", 16);
+    public static final Icon FILTER = createIcon("filter", 16);
     public static final Icon FIND = createIcon("search", 16);
     public static final Icon REPLACE = createIcon("find-replace", 16);
     public static final Icon REPLACE_ALL = createIcon("replace-all", 16);

@@ -12,7 +12,9 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableRowSorter;
+import javax.swing.RowFilter;
 import javax.swing.RowSorter;
+import javax.swing.RowFilter.Entry;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -165,6 +167,12 @@ public class CsvEditorPanel extends JPanel {
         saveButton.setPreferredSize(new Dimension(28, 28));
         saveButton.setToolTipText("Save CSV File");
         saveButton.addActionListener(e -> saveFile());
+        
+        JButton filterButton = new JButton();
+        filterButton.setIcon(Icons.FILTER);
+        filterButton.setPreferredSize(new Dimension(28, 28));
+        filterButton.setToolTipText("Filter Data");
+        filterButton.addActionListener(e -> showFilterDialog());
 
         // View mode toggle
         JToggleButton viewModeButton = new JToggleButton("Text");
@@ -205,8 +213,9 @@ public class CsvEditorPanel extends JPanel {
         // First row: file controls and view mode
         topPanel.add(openButton, "cell 0 0");
         topPanel.add(saveButton, "cell 1 0");
-        topPanel.add(new JLabel(), "cell 2 0, growx"); // Spacer
-        topPanel.add(viewModeButton, "cell 3 0");
+        topPanel.add(filterButton, "cell 2 0");
+        topPanel.add(new JLabel(), "cell 3 0, growx"); // Spacer
+        topPanel.add(viewModeButton, "cell 4 0");
 
         // Second row: search and replace
         searchPanel.add(new JLabel("Find:"), "");
@@ -221,7 +230,7 @@ public class CsvEditorPanel extends JPanel {
         searchPanel.add(replaceButton, "split 2");
         searchPanel.add(replaceAllButton, "");
 
-        topPanel.add(searchPanel, "cell 0 1 4 1, growx");
+        topPanel.add(searchPanel, "cell 0 1 5 1, growx");
 
         // Create progress bar
         progressBar = new JProgressBar();
@@ -846,5 +855,161 @@ public class CsvEditorPanel extends JPanel {
         };
         
         worker.execute();
+    }
+
+    private void showFilterDialog() {
+        // Find the frame owner
+        Frame owner = (Frame) SwingUtilities.getWindowAncestor(this);
+        
+        JDialog dialog = new JDialog(owner, "Filter Data", true);
+        dialog.setLayout(new BorderLayout());
+        
+        // Create main panel with filter conditions
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        
+        // Scrollable container for filter conditions
+        JPanel conditionsPanel = new JPanel();
+        conditionsPanel.setLayout(new BoxLayout(conditionsPanel, BoxLayout.Y_AXIS));
+        JScrollPane scrollPane = new JScrollPane(conditionsPanel);
+        scrollPane.setPreferredSize(new Dimension(500, 300));
+        
+        // List to keep track of filter conditions
+        List<FilterCondition> filterConditions = new ArrayList<>();
+        
+        // Add condition button
+        JButton addConditionButton = new JButton("Add Condition");
+        addConditionButton.addActionListener(e -> {
+            FilterCondition condition = new FilterCondition(getColumnNames());
+            filterConditions.add(condition);
+            conditionsPanel.add(condition);
+            conditionsPanel.revalidate();
+            conditionsPanel.repaint();
+        });
+        
+        // Control buttons panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton applyButton = new JButton("Apply");
+        JButton clearButton = new JButton("Clear");
+        JButton cancelButton = new JButton("Cancel");
+        
+        applyButton.addActionListener(e -> {
+            applyFilters(filterConditions);
+            dialog.dispose();
+        });
+        
+        clearButton.addActionListener(e -> {
+            filterConditions.clear();
+            conditionsPanel.removeAll();
+            conditionsPanel.revalidate();
+            conditionsPanel.repaint();
+            sorter.setRowFilter(null);
+            table.repaint();
+        });
+        
+        cancelButton.addActionListener(e -> dialog.dispose());
+        
+        buttonPanel.add(applyButton);
+        buttonPanel.add(clearButton);
+        buttonPanel.add(cancelButton);
+        
+        // Add components to dialog
+        dialog.add(addConditionButton, BorderLayout.NORTH);
+        dialog.add(scrollPane, BorderLayout.CENTER);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+        
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+    
+    private String[] getColumnNames() {
+        DefaultTableModel model = (DefaultTableModel) table.getModel();
+        String[] columns = new String[model.getColumnCount()];
+        for (int i = 0; i < model.getColumnCount(); i++) {
+            columns[i] = model.getColumnName(i);
+        }
+        return columns;
+    }
+    
+    private void applyFilters(List<FilterCondition> conditions) {
+        if (conditions.isEmpty()) {
+            sorter.setRowFilter(null);
+            return;
+        }
+        
+        RowFilter<DefaultTableModel, Integer> filter = new RowFilter<>() {
+            @Override
+            public boolean include(Entry<? extends DefaultTableModel, ? extends Integer> entry) {
+                for (FilterCondition condition : conditions) {
+                    if (!condition.evaluate(entry)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        };
+        
+        sorter.setRowFilter(filter);
+    }
+    
+    // Inner class for filter condition UI and logic
+    private class FilterCondition extends JPanel {
+        private JComboBox<String> columnCombo;
+        private JComboBox<String> operatorCombo;
+        private JTextField valueField;
+        private JButton removeButton;
+        
+        public FilterCondition(String[] columns) {
+            setLayout(new FlowLayout(FlowLayout.LEFT));
+            
+            columnCombo = new JComboBox<>(columns);
+            operatorCombo = new JComboBox<>(new String[]{"Equals", "Contains", "In List"});
+            valueField = new JTextField(20);
+            removeButton = new JButton("×");
+            
+            removeButton.addActionListener(e -> {
+                Container parent = getParent();
+                parent.remove(this);
+                parent.revalidate();
+                parent.repaint();
+            });
+            
+            add(columnCombo);
+            add(operatorCombo);
+            add(valueField);
+            add(removeButton);
+        }
+        
+        public boolean evaluate(Entry<? extends DefaultTableModel, ? extends Integer> entry) {
+            int columnIndex = columnCombo.getSelectedIndex();
+            String cellValue = String.valueOf(entry.getValue(columnIndex));
+            String filterValue = valueField.getText().trim();
+            String operator = (String) operatorCombo.getSelectedItem();
+            
+            if (filterValue.isEmpty()) {
+                return true;
+            }
+            
+            switch (operator) {
+                case "Equals":
+                    return cellValue.equalsIgnoreCase(filterValue);
+                    
+                case "Contains":
+                    return cellValue.toLowerCase().contains(filterValue.toLowerCase());
+                    
+                case "In List":
+                    String[] items = filterValue.split(",");
+                    for (String item : items) {
+                        if (cellValue.equalsIgnoreCase(item.trim())) {
+                            return true;
+                        }
+                    }
+                    return false;
+                    
+                default:
+                    return true;
+            }
+        }
     }
 }
