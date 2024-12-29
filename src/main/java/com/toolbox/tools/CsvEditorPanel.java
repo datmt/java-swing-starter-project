@@ -210,7 +210,7 @@ public class CsvEditorPanel extends JPanel {
         filterButton.addActionListener(e -> showFilterDialog());
 
         JButton exportButton = new JButton();
-        exportButton.setIcon(Icons.SAVE);
+        exportButton.setIcon(Icons.EXPORT);
         exportButton.setPreferredSize(new Dimension(28, 28));
         exportButton.setToolTipText("Export Filtered Results");
         exportButton.addActionListener(e -> exportFilteredResults());
