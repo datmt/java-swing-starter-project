@@ -17,7 +17,8 @@ public class CsvMergePanel extends JPanel {
     private final DefaultListModel<String> fileListModel = new DefaultListModel<>();
     private final JList<String> fileList = new JList<>(fileListModel);
     private final JTextArea logArea = new JTextArea();
-    private final JButton mergeButton;
+    private final JButton csvMergeButton;
+    private final JButton excelMergeButton;
     private final CsvMerger merger = new CsvMerger();
     
     public CsvMergePanel() {
@@ -26,15 +27,21 @@ public class CsvMergePanel extends JPanel {
 
         // Description panel
         JPanel descriptionPanel = new JPanel(new BorderLayout());
-        JLabel descriptionLabel = new JLabel("<html>CSV Merge Tool<br/>Merge multiple CSV files into one. Files should have matching or compatible headers.</html>");
+        JLabel descriptionLabel = new JLabel("<html>CSV Merge Tool<br/>Merge multiple CSV files into one CSV file or Excel workbook.</html>");
         descriptionLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
         descriptionLabel.setBorder(new EmptyBorder(0, 0, 15, 0));
         descriptionPanel.add(descriptionLabel, BorderLayout.CENTER);
         add(descriptionPanel, BorderLayout.NORTH);
 
-        // Main content panel
-        JPanel mainPanel = new JPanel(new MigLayout("fillx, wrap 1", "[grow,fill]", "[][grow][]"));
-        mainPanel.setBorder(BorderFactory.createTitledBorder("CSV Merge Configuration"));
+        // Main content panel with tabs
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.addTab("Merge to CSV", createCsvPanel());
+        tabbedPane.addTab("Merge to Excel", createExcelPanel());
+        add(tabbedPane, BorderLayout.CENTER);
+
+        // File selection panel (shared between tabs)
+        JPanel filePanel = new JPanel(new BorderLayout(0, 10));
+        filePanel.setBorder(BorderFactory.createTitledBorder("Selected Files"));
 
         // File selection buttons
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -53,24 +60,31 @@ public class CsvMergePanel extends JPanel {
         buttonPanel.add(addButton);
         buttonPanel.add(removeButton);
         buttonPanel.add(clearButton);
-        mainPanel.add(buttonPanel);
+        filePanel.add(buttonPanel, BorderLayout.NORTH);
 
         // File list
         fileList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         JScrollPane fileScrollPane = new JScrollPane(fileList);
         fileScrollPane.setPreferredSize(new Dimension(0, 200));
-        mainPanel.add(fileScrollPane);
+        filePanel.add(fileScrollPane, BorderLayout.CENTER);
 
-        // Merge button panel
+        // Merge buttons panel
         JPanel mergePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        mergeButton = new JButton("Merge Files");
-        mergeButton.setIcon(UIManager.getIcon("FileView.hardDriveIcon"));
-        mergeButton.setEnabled(false);
-        mergeButton.addActionListener(e -> mergeFiles());
-        mergePanel.add(mergeButton);
-        mainPanel.add(mergePanel);
+        csvMergeButton = new JButton("Merge to CSV");
+        csvMergeButton.setIcon(UIManager.getIcon("FileView.hardDriveIcon"));
+        csvMergeButton.setEnabled(false);
+        csvMergeButton.addActionListener(e -> mergeToCsv());
+        
+        excelMergeButton = new JButton("Merge to Excel");
+        excelMergeButton.setIcon(UIManager.getIcon("FileView.hardDriveIcon"));
+        excelMergeButton.setEnabled(false);
+        excelMergeButton.addActionListener(e -> mergeToExcel());
+        
+        mergePanel.add(csvMergeButton);
+        mergePanel.add(excelMergeButton);
+        filePanel.add(mergePanel, BorderLayout.SOUTH);
 
-        add(mainPanel, BorderLayout.CENTER);
+        add(filePanel, BorderLayout.CENTER);
 
         // Log panel
         JPanel logPanel = new JPanel(new BorderLayout());
@@ -81,6 +95,34 @@ public class CsvMergePanel extends JPanel {
         logScrollPane.setPreferredSize(new Dimension(0, 150));
         logPanel.add(logScrollPane);
         add(logPanel, BorderLayout.SOUTH);
+    }
+
+    private JPanel createCsvPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        
+        JPanel infoPanel = new JPanel(new MigLayout("fillx, wrap 1", "[grow]"));
+        infoPanel.add(new JLabel("<html><b>CSV Merge Options</b></html>"), "wrap");
+        infoPanel.add(new JLabel("<html>Merge multiple CSV files into a single CSV file.<br/>" +
+                "If headers match, data will be appended sequentially.<br/>" +
+                "If headers differ, missing columns will be filled with empty values.</html>"), "wrap");
+        
+        panel.add(infoPanel, BorderLayout.NORTH);
+        return panel;
+    }
+
+    private JPanel createExcelPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        
+        JPanel infoPanel = new JPanel(new MigLayout("fillx, wrap 1", "[grow]"));
+        infoPanel.add(new JLabel("<html><b>Excel Merge Options</b></html>"), "wrap");
+        infoPanel.add(new JLabel("<html>Merge multiple CSV files into a single Excel workbook.<br/>" +
+                "Each CSV file will be placed in a separate worksheet.<br/>" +
+                "Sheet names will be based on CSV file names.</html>"), "wrap");
+        
+        panel.add(infoPanel, BorderLayout.NORTH);
+        return panel;
     }
 
     private void addFiles() {
@@ -123,10 +165,12 @@ public class CsvMergePanel extends JPanel {
     }
 
     private void updateMergeButtonState() {
-        mergeButton.setEnabled(selectedFiles.size() >= 2);
+        boolean hasFiles = selectedFiles.size() >= 2;
+        csvMergeButton.setEnabled(hasFiles);
+        excelMergeButton.setEnabled(hasFiles);
     }
 
-    private void mergeFiles() {
+    private void mergeToCsv() {
         if (selectedFiles.size() < 2) {
             JOptionPane.showMessageDialog(this,
                     "Please select at least two files to merge.",
@@ -200,6 +244,58 @@ public class CsvMergePanel extends JPanel {
                     "Error merging files: " + e.getMessage(),
                     "Error",
                     JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void mergeToExcel() {
+        if (selectedFiles.size() < 2) {
+            JOptionPane.showMessageDialog(this,
+                    "Please select at least two files to merge.",
+                    "Not Enough Files",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Choose output file
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
+            public boolean accept(File f) {
+                return f.isDirectory() || f.getName().toLowerCase().endsWith(".xlsx");
+            }
+            public String getDescription() {
+                return "Excel Files (*.xlsx)";
+            }
+        });
+
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File outputFile = fileChooser.getSelectedFile();
+            if (!outputFile.getName().toLowerCase().endsWith(".xlsx")) {
+                outputFile = new File(outputFile.getAbsolutePath() + ".xlsx");
+            }
+
+            try {
+                // Perform merge
+                merger.mergeToExcel(selectedFiles, outputFile);
+                
+                logArea.append("Successfully merged files to Excel: " + outputFile.getName() + "\n");
+                logArea.append("Created " + selectedFiles.size() + " worksheets:\n");
+                for (File file : selectedFiles) {
+                    logArea.append("- " + file.getName() + "\n");
+                }
+                logArea.append("\n");
+                
+                // Show success message
+                JOptionPane.showMessageDialog(this,
+                        "Files merged successfully!\nOutput file: " + outputFile.getName(),
+                        "Merge Complete",
+                        JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException | CsvException e) {
+                logArea.append("Error: " + e.getMessage() + "\n");
+                JOptionPane.showMessageDialog(this,
+                        "Error merging files: " + e.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 }

@@ -3,8 +3,11 @@ package com.toolbox.tools;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvException;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -112,6 +115,84 @@ public class CsvMerger {
                         writer.writeNext(newLine);
                     }
                 }
+            }
+        }
+    }
+
+    public void mergeToExcel(List<File> files, File outputFile) throws IOException, CsvException {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            // Create cell style for headers
+            CellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            // Keep track of used sheet names
+            Set<String> usedSheetNames = new HashSet<>();
+
+            // Process each file into a separate sheet
+            for (File file : files) {
+                String baseSheetName = file.getName().replaceAll("\\.csv$", "");
+                if (baseSheetName.length() > 25) { // Leave room for random suffix
+                    baseSheetName = baseSheetName.substring(0, 25);
+                }
+
+                // Generate unique sheet name
+                String sheetName = baseSheetName;
+                int attempt = 1;
+                while (usedSheetNames.contains(sheetName)) {
+                    String suffix = String.format("_%04d", (int)(Math.random() * 10000));
+                    sheetName = baseSheetName + suffix;
+                    if (sheetName.length() > 31) { // Excel sheet name length limit
+                        sheetName = baseSheetName.substring(0, 31 - suffix.length()) + suffix;
+                    }
+                    attempt++;
+                    if (attempt > 1000) { // Prevent infinite loop
+                        throw new IOException("Unable to generate unique sheet name after 1000 attempts");
+                    }
+                }
+                usedSheetNames.add(sheetName);
+
+                Sheet sheet = workbook.createSheet(sheetName);
+
+                // Read CSV data
+                List<String[]> csvData;
+                try (CSVReader reader = new CSVReader(new FileReader(file))) {
+                    csvData = reader.readAll();
+                }
+
+                if (csvData.isEmpty()) continue;
+
+                // Write headers
+                Row headerRow = sheet.createRow(0);
+                String[] headers = csvData.get(0);
+                for (int i = 0; i < headers.length; i++) {
+                    Cell cell = headerRow.createCell(i);
+                    cell.setCellValue(headers[i]);
+                    cell.setCellStyle(headerStyle);
+                }
+
+                // Write data rows
+                for (int i = 1; i < csvData.size(); i++) {
+                    Row row = sheet.createRow(i);
+                    String[] rowData = csvData.get(i);
+                    for (int j = 0; j < rowData.length; j++) {
+                        Cell cell = row.createCell(j);
+                        cell.setCellValue(rowData[j]);
+                    }
+                }
+
+                // Auto-size columns
+                for (int i = 0; i < headers.length; i++) {
+                    sheet.autoSizeColumn(i);
+                }
+            }
+
+            // Write the workbook to file
+            try (FileOutputStream fileOut = new FileOutputStream(outputFile)) {
+                workbook.write(fileOut);
             }
         }
     }
