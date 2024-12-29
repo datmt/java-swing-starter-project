@@ -12,9 +12,11 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableRowSorter;
+import javax.swing.table.TableModel;
 import javax.swing.RowFilter;
 import javax.swing.RowSorter;
 import javax.swing.RowFilter.Entry;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -207,6 +209,12 @@ public class CsvEditorPanel extends JPanel {
         filterButton.setToolTipText("Filter Data");
         filterButton.addActionListener(e -> showFilterDialog());
 
+        JButton exportButton = new JButton();
+        exportButton.setIcon(Icons.SAVE);
+        exportButton.setPreferredSize(new Dimension(28, 28));
+        exportButton.setToolTipText("Export Filtered Results");
+        exportButton.addActionListener(e -> exportFilteredResults());
+
         // View mode toggle
         JToggleButton viewModeButton = new JToggleButton("Text");
         viewModeButton.setToolTipText("Switch between Spreadsheet and Text mode");
@@ -247,8 +255,9 @@ public class CsvEditorPanel extends JPanel {
         topPanel.add(openButton, "cell 0 0");
         topPanel.add(saveButton, "cell 1 0");
         topPanel.add(filterButton, "cell 2 0");
-        topPanel.add(new JLabel(), "cell 3 0, growx"); // Spacer
-        topPanel.add(viewModeButton, "cell 4 0");
+        topPanel.add(exportButton, "cell 3 0");
+        topPanel.add(new JLabel(), "cell 4 0, growx"); // Spacer
+        topPanel.add(viewModeButton, "cell 5 0");
 
         // Second row: search and replace
         searchPanel.add(new JLabel("Find:"), "");
@@ -263,7 +272,7 @@ public class CsvEditorPanel extends JPanel {
         searchPanel.add(replaceButton, "split 2");
         searchPanel.add(replaceAllButton, "");
 
-        topPanel.add(searchPanel, "cell 0 1 5 1, growx");
+        topPanel.add(searchPanel, "cell 0 1 6 1, growx");
 
         // Create progress bar
         progressBar = new JProgressBar();
@@ -1138,6 +1147,71 @@ public class CsvEditorPanel extends JPanel {
             this.column = column;
             this.operator = operator;
             this.value = value;
+        }
+    }
+
+    private void exportFilteredResults() {
+        if (table == null || table.getModel().getRowCount() == 0) {
+            JOptionPane.showMessageDialog(this, 
+                "No data to export", 
+                "Export Error", 
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("CSV Files", "csv"));
+        
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            if (!file.getName().toLowerCase().endsWith(".csv")) {
+                file = new File(file.getParentFile(), file.getName() + ".csv");
+            }
+            
+            if (file.exists()) {
+                int result = JOptionPane.showConfirmDialog(this,
+                    "File already exists. Do you want to overwrite it?",
+                    "Confirm Overwrite",
+                    JOptionPane.YES_NO_OPTION);
+                if (result != JOptionPane.YES_OPTION) {
+                    return;
+                }
+            }
+
+            try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {
+                DefaultTableModel model = (DefaultTableModel) table.getModel();
+                TableRowSorter<? extends TableModel> sorter = 
+                    (TableRowSorter<? extends TableModel>) table.getRowSorter();
+                
+                // Write headers
+                String[] headers = new String[model.getColumnCount()];
+                for (int i = 0; i < model.getColumnCount(); i++) {
+                    headers[i] = model.getColumnName(i);
+                }
+                writer.writeNext(headers);
+                
+                // Write filtered data
+                for (int viewRow = 0; viewRow < table.getRowCount(); viewRow++) {
+                    String[] rowData = new String[model.getColumnCount()];
+                    for (int col = 0; col < model.getColumnCount(); col++) {
+                        int modelRow = table.convertRowIndexToModel(viewRow);
+                        Object value = model.getValueAt(modelRow, col);
+                        rowData[col] = value != null ? value.toString() : "";
+                    }
+                    writer.writeNext(rowData);
+                }
+                
+                JOptionPane.showMessageDialog(this,
+                    "Export completed successfully",
+                    "Export Success",
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this,
+                    "Error exporting data: " + ex.getMessage(),
+                    "Export Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 }
