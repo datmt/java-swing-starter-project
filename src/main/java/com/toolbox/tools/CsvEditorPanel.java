@@ -382,7 +382,10 @@ public class CsvEditorPanel extends JPanel {
                 showError("Invalid regular expression: " + e.getMessage());
                 return;
             }
-        } else if (!caseSensitive) {
+        }
+
+        // Convert search text to lowercase if case insensitive
+        if (!caseSensitive) {
             searchText = searchText.toLowerCase();
         }
 
@@ -391,17 +394,15 @@ public class CsvEditorPanel extends JPanel {
                 Object value = model.getValueAt(row, col);
                 if (value != null) {
                     String cellText = value.toString();
+                    String compareText = caseSensitive ? cellText : cellText.toLowerCase();
                     boolean matches = false;
 
                     if (useRegex) {
                         matches = pattern.matcher(cellText).find();
+                    } else if (exactMatch) {
+                        matches = compareText.equals(searchText);
                     } else {
-                        String compareText = caseSensitive ? cellText : cellText.toLowerCase();
-                        if (exactMatch) {
-                            matches = compareText.equals(searchText);
-                        } else {
-                            matches = compareText.contains(searchText);
-                        }
+                        matches = compareText.contains(searchText);
                     }
 
                     if (matches) {
