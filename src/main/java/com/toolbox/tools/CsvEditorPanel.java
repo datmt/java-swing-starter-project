@@ -28,6 +28,10 @@ import java.util.stream.Collectors;
 import java.util.Comparator;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
+import javax.swing.RowSorter.SortKey;
+import javax.swing.SortOrder;
 
 public class CsvEditorPanel extends JPanel {
     private JTable table;
@@ -131,43 +135,7 @@ public class CsvEditorPanel extends JPanel {
         table.setDefaultRenderer(Object.class, customRenderer);
         table.setDefaultRenderer(String.class, customRenderer);
 
-        // Initialize the sorter with custom comparator
-        sorter = new TableRowSorter<>(model);
-        table.setRowSorter(sorter);
-
-        // Disable default sorting behavior
-        table.getTableHeader().setReorderingAllowed(false);
-        sorter.setSortsOnUpdates(false);
-
-        // Remove all existing mouse listeners from header
-        for (MouseListener listener : table.getTableHeader().getMouseListeners()) {
-            table.getTableHeader().removeMouseListener(listener);
-        }
-
-        // Add our custom double-click listener
-        table.getTableHeader().addMouseListener(new MouseAdapter() {
-            private long lastClick = 0;
-            private int lastColumn = -1;
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                int column = table.columnAtPoint(e.getPoint());
-                if (column == -1) return;
-
-                long clickTime = System.currentTimeMillis();
-
-                if (column == lastColumn && clickTime - lastClick < 500) {  // Double click within 500ms
-                    e.consume();  // Prevent event propagation
-                    sortColumn(column);
-                }
-
-                lastColumn = column;
-                lastClick = clickTime;
-            }
-        });
-
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        table.setFillsViewportHeight(true);
+        setupTable(model);
 
         JScrollPane tableScrollPane = new JScrollPane(table);
         tableScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -296,6 +264,70 @@ public class CsvEditorPanel extends JPanel {
 
         // Initialize search
         setupSearchListeners();
+    }
+
+    private void setupTable(DefaultTableModel model) {
+        table.setModel(model);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        table.setFillsViewportHeight(true);
+        
+        // Set up column model with proper resize behavior
+        TableColumnModel columnModel = table.getColumnModel();
+        for (int i = 0; i < columnModel.getColumnCount(); i++) {
+            TableColumn column = columnModel.getColumn(i);
+            column.setPreferredWidth(150); // Default width
+            
+            // Add column resize listener
+            column.addPropertyChangeListener(e -> {
+                if ("width".equals(e.getPropertyName())) {
+                    table.repaint();
+                }
+            });
+        }
+
+        // Add mouse motion listener for resize cursor
+        table.getTableHeader().addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                int column = table.getColumnModel().getColumnIndexAtX(e.getX());
+                if (column >= 0) {
+                    Rectangle r = table.getTableHeader().getHeaderRect(column);
+                    r.grow(-3, 0);
+                    if (r.contains(e.getPoint())) {
+                        table.getTableHeader().setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+                    } else {
+                        table.getTableHeader().setCursor(Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR));
+                    }
+                }
+            }
+        });
+
+        // Enable column reordering
+        table.getTableHeader().setReorderingAllowed(true);
+        
+        // Set row height
+        table.setRowHeight(24);
+
+        // Add double-click listener for sorting
+        table.getTableHeader().addMouseListener(new MouseAdapter() {
+            private long lastClick = 0;
+            private int lastColumn = -1;
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int column = table.columnAtPoint(e.getPoint());
+                if (column == -1) return;
+
+                long clickTime = System.currentTimeMillis();
+                if (column == lastColumn && clickTime - lastClick < 500) {  // Double click within 500ms
+                    e.consume();  // Prevent event propagation
+                    sortColumn(column);
+                }
+
+                lastColumn = column;
+                lastClick = clickTime;
+            }
+        });
     }
 
     private void setupSearchListeners() {
@@ -586,10 +618,26 @@ public class CsvEditorPanel extends JPanel {
                         model.addColumn(header);
                     }
 
-                    // Reset sorter with custom comparator
+                    // Set up sorter
                     sorter = new TableRowSorter<>(model);
                     table.setRowSorter(sorter);
                     sorter.setSortsOnUpdates(false);
+
+                    // Add numeric comparator for the index column
+                    if (model.getColumnCount() > 0 && "Index".equals(model.getColumnName(0))) {
+                        sorter.setComparator(0, new Comparator<String>() {
+                            @Override
+                            public int compare(String s1, String s2) {
+                                try {
+                                    long n1 = Long.parseLong(s1);
+                                    long n2 = Long.parseLong(s2);
+                                    return Long.compare(n1, n2);
+                                } catch (NumberFormatException e) {
+                                    return s1.compareTo(s2); // fallback to string comparison
+                                }
+                            }
+                        });
+                    }
 
                     // Initially disable sorting for all columns
                     for (int i = 0; i < model.getColumnCount(); i++) {
@@ -606,6 +654,33 @@ public class CsvEditorPanel extends JPanel {
                 // Clear search state and update UI
                 clearSearchState();
                 searchField.setText("");
+
+                // Auto-size columns based on content
+                for (int column = 0; column < table.getColumnCount(); column++) {
+                    int width = 50; // minimum width
+                    TableColumn tableColumn = table.getColumnModel().getColumn(column);
+
+                    // Check header width
+                    TableCellRenderer headerRenderer = tableColumn.getHeaderRenderer();
+                    if (headerRenderer == null) {
+                        headerRenderer = table.getTableHeader().getDefaultRenderer();
+                    }
+                    Component headerComp = headerRenderer.getTableCellRendererComponent(
+                        table, tableColumn.getHeaderValue(), false, false, 0, column);
+                    width = Math.max(width, headerComp.getPreferredSize().width + 10);
+
+                    // Check data width (sample first 100 rows)
+                    int rowsToCheck = Math.min(100, table.getRowCount());
+                    for (int row = 0; row < rowsToCheck; row++) {
+                        TableCellRenderer renderer = table.getCellRenderer(row, column);
+                        Component comp = table.prepareRenderer(renderer, row, column);
+                        width = Math.max(width, comp.getPreferredSize().width + 10);
+                    }
+
+                    // Cap width at 300 pixels
+                    width = Math.min(width, 300);
+                    tableColumn.setPreferredWidth(width);
+                }
 
             } catch (IOException e) {
                 JOptionPane.showMessageDialog(this,
@@ -808,95 +883,18 @@ public class CsvEditorPanel extends JPanel {
     }
 
     private void sortColumn(int column) {
-        setProcessing(true);
-        progressBar.setValue(0);
-
-        SwingWorker<Void, Integer> worker = new SwingWorker<>() {
-            @Override
-            protected Void doInBackground() throws Exception {
-                DefaultTableModel model = (DefaultTableModel) table.getModel();
-                int rowCount = model.getRowCount();
-
-                // Get current sort order
-                List<? extends RowSorter.SortKey> sortKeys = sorter.getSortKeys();
-                SortOrder currentOrder = SortOrder.UNSORTED;
-                if (!sortKeys.isEmpty() && sortKeys.get(0).getColumn() == column) {
-                    currentOrder = sortKeys.get(0).getSortOrder();
-                }
-
-                // Determine next sort order
-                SortOrder nextOrder;
-                switch (currentOrder) {
-                    case ASCENDING:
-                        nextOrder = SortOrder.DESCENDING;
-                        break;
-                    case DESCENDING:
-                        nextOrder = SortOrder.UNSORTED;
-                        break;
-                    default:
-                        nextOrder = SortOrder.ASCENDING;
-                }
-
-                // Enable sorting just for this column
-                for (int i = 0; i < model.getColumnCount(); i++) {
-                    sorter.setSortable(i, i == column);
-                }
-
-                // Prepare data for sorting in chunks
-                int chunkSize = 1000;
-                int totalChunks = (rowCount + chunkSize - 1) / chunkSize;
-
-                for (int chunk = 0; chunk < totalChunks; chunk++) {
-                    if (isCancelled()) {
-                        break;
-                    }
-
-                    int progress = (chunk * 100) / totalChunks;
-                    publish(progress);
-
-                    // Process a chunk of rows
-                    int start = chunk * chunkSize;
-                    int end = Math.min(start + chunkSize, rowCount);
-
-                    // Allow UI to update
-                    Thread.sleep(1);
-                }
-
-                // Set new sort order on EDT
-                SwingUtilities.invokeLater(() -> {
-                    if (nextOrder == SortOrder.UNSORTED) {
-                        sorter.setSortKeys(null);
-                    } else {
-                        sorter.setSortKeys(List.of(new RowSorter.SortKey(column, nextOrder)));
-                    }
-                });
-
-                publish(100);
-                return null;
+        List<? extends SortKey> sortKeys = sorter.getSortKeys();
+        SortOrder currentOrder = SortOrder.ASCENDING;
+        
+        if (!sortKeys.isEmpty()) {
+            SortKey currentKey = sortKeys.get(0);
+            if (currentKey.getColumn() == column) {
+                currentOrder = currentKey.getSortOrder() == SortOrder.ASCENDING ? 
+                    SortOrder.DESCENDING : SortOrder.ASCENDING;
             }
-
-            @Override
-            protected void process(List<Integer> chunks) {
-                if (!chunks.isEmpty()) {
-                    progressBar.setValue(chunks.get(chunks.size() - 1));
-                }
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    get(); // Check for exceptions
-                    progressBar.setValue(100);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                } finally {
-                    setProcessing(false);
-                    table.repaint();
-                }
-            }
-        };
-
-        worker.execute();
+        }
+        
+        sorter.setSortKeys(Arrays.asList(new RowSorter.SortKey(column, currentOrder)));
     }
 
     private void showFilterDialog() {
