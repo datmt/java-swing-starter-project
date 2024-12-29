@@ -50,6 +50,7 @@ public class CsvEditorPanel extends JPanel {
     private JPanel mainPanel;
     private boolean isProcessing = false;
     private TableRowSorter<DefaultTableModel> sorter;
+    private List<FilterState> currentFilters = new ArrayList<>();  // Store current filters
 
     public CsvEditorPanel() {
         setLayout(new BorderLayout(0, 0));
@@ -902,7 +903,6 @@ public class CsvEditorPanel extends JPanel {
         // Scrollable container for filter conditions
         JPanel conditionsPanel = new JPanel();
         conditionsPanel.setLayout(new BoxLayout(conditionsPanel, BoxLayout.Y_AXIS));
-        // Add some padding around conditions
         conditionsPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         // Wrap conditionsPanel in another panel to prevent vertical centering
@@ -917,6 +917,15 @@ public class CsvEditorPanel extends JPanel {
 
         // List to keep track of filter conditions
         List<FilterCondition> filterConditions = new ArrayList<>();
+
+        // Restore previous filters if any
+        for (FilterState state : currentFilters) {
+            FilterCondition condition = new FilterCondition(getColumnNames());
+            condition.setValues(state.column, state.operator, state.value);
+            filterConditions.add(condition);
+            conditionsPanel.add(condition);
+            condition.setAlignmentX(Component.LEFT_ALIGNMENT);
+        }
 
         // Add condition button panel
         JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
@@ -944,12 +953,22 @@ public class CsvEditorPanel extends JPanel {
         JButton cancelButton = new JButton("Cancel");
 
         applyButton.addActionListener(e -> {
+            // Save current filters
+            currentFilters.clear();
+            for (FilterCondition condition : filterConditions) {
+                currentFilters.add(new FilterState(
+                    (String) condition.columnCombo.getSelectedItem(),
+                    (String) condition.operatorCombo.getSelectedItem(),
+                    condition.valueField.getText()
+                ));
+            }
             applyFilters(filterConditions);
             dialog.dispose();
         });
 
         clearButton.addActionListener(e -> {
             filterConditions.clear();
+            currentFilters.clear();
             conditionsPanel.removeAll();
             conditionsPanel.revalidate();
             conditionsPanel.repaint();
@@ -1041,6 +1060,12 @@ public class CsvEditorPanel extends JPanel {
             add(removeButton);
         }
 
+        public void setValues(String column, String operator, String value) {
+            columnCombo.setSelectedItem(column);
+            operatorCombo.setSelectedItem(operator);
+            valueField.setText(value);
+        }
+
         public boolean evaluate(Entry<? extends DefaultTableModel, ? extends Integer> entry) {
             int columnIndex = columnCombo.getSelectedIndex();
             String cellValue = String.valueOf(entry.getValue(columnIndex));
@@ -1070,6 +1095,18 @@ public class CsvEditorPanel extends JPanel {
                 default:
                     return true;
             }
+        }
+    }
+
+    private static class FilterState {
+        String column;
+        String operator;
+        String value;
+
+        FilterState(String column, String operator, String value) {
+            this.column = column;
+            this.operator = operator;
+            this.value = value;
         }
     }
 }
