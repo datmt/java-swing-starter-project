@@ -1,0 +1,139 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on version tags
+
+jobs:
+  build-mac-x64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+          
+      - name: Build with Maven
+        run: mvn clean package
+        
+      - name: Create macOS x64 Package
+        run: |
+          jpackage \
+            --input target \
+            --name "BC18 Spreadsheet Tools" \
+            --main-jar desktop-tools-app-1.0-jar-with-dependencies.jar \
+            --main-class com.toolbox.MainApp \
+            --type dmg \
+            --icon src/main/resources/icons/app.icns \
+            --app-version "${GITHUB_REF#refs/tags/v}" \
+            --vendor "BC18" \
+            --copyright "Copyright 2024" \
+            --mac-package-identifier com.toolbox.desktoptools \
+            --mac-package-name "BC18-ST"
+            
+      - name: Upload macOS x64 Package
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos-x64-package
+          path: "BC18 Spreadsheet Tools-*.dmg"
+
+  build-mac-arm:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+          
+      - name: Build with Maven
+        run: mvn clean package
+        
+      - name: Create macOS ARM Package
+        run: |
+          jpackage \
+            --input target \
+            --name "BC18 Spreadsheet Tools" \
+            --main-jar desktop-tools-app-1.0-jar-with-dependencies.jar \
+            --main-class com.toolbox.MainApp \
+            --type dmg \
+            --icon src/main/resources/icons/app.icns \
+            --app-version "${GITHUB_REF#refs/tags/v}" \
+            --vendor "BC18" \
+            --copyright "Copyright 2024" \
+            --mac-package-identifier com.toolbox.desktoptools \
+            --mac-package-name "BC18-ST" \
+            --mac-package-signing-prefix com.toolbox \
+            --java-options "--enable-preview" \
+            --java-options "-Dapple.awt.application.appearance=system"
+            
+      - name: Upload macOS ARM Package
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos-arm-package
+          path: "BC18 Spreadsheet Tools-*.dmg"
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+          
+      - name: Build with Maven
+        run: mvn clean package
+        
+      - name: Create Linux Package
+        run: |
+          jpackage \
+            --input target \
+            --name "bc18-spreadsheet-tools" \
+            --main-jar desktop-tools-app-1.0-jar-with-dependencies.jar \
+            --main-class com.toolbox.MainApp \
+            --type deb \
+            --linux-shortcut \
+            --app-version "${GITHUB_REF#refs/tags/v}" \
+            --vendor "BC18" \
+            --copyright "Copyright 2024" \
+            --linux-menu-group "Office" \
+            --linux-app-category "Office" \
+            --description "BC18 Spreadsheet Tools - Excel and CSV processing tools"
+            
+      - name: Upload Linux Package
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-package
+          path: "*.deb"
+
+  create-release:
+    needs: [build-mac-x64, build-mac-arm, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            macos-x64-package/*.dmg
+            macos-arm-package/*.dmg
+            linux-package/*.deb
+          draft: false
+          prerelease: false
+          generate_release_notes: true
