@@ -18,6 +18,6 @@ jpackage \
   --vendor "Your Company" \
   --copyright "Copyright 2024" \
   --mac-package-identifier com.toolbox.desktoptools \
-  --mac-package-name "BC18 Spreadsheet Tools" \
+  --mac-package-name "BC18-ST" \
   --java-options "-Xmx2048m" \
   --java-options "--enable-preview"
