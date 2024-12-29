@@ -3,6 +3,7 @@ package com.toolbox;
 import com.toolbox.tools.CsvMappingPanel;
 import com.toolbox.tools.CsvEditorPanel;
 import com.toolbox.tools.JsonToCsvPanel;
+import com.toolbox.tools.CsvMergePanel;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -44,6 +45,10 @@ public class ToolTreeModel extends DefaultTreeModel {
         // Create CSV Editor tool with lazy initialization
         Tool csvEditorTool = new Tool("CSV Editor", CsvEditorPanel::new, false);
         csvCategory.addChild(csvEditorTool);
+
+        // Create CSV Merge tool with lazy initialization
+        Tool csvMergeTool = new Tool("CSV Merge", CsvMergePanel::new, false);
+        csvCategory.addChild(csvMergeTool);
         
         // Add to all tools list
         allTools.add(jsonCategory);
@@ -51,11 +56,13 @@ public class ToolTreeModel extends DefaultTreeModel {
         allTools.add(csvCategory);
         allTools.add(csvMappingTool);
         allTools.add(csvEditorTool);
+        allTools.add(csvMergeTool);
         
         // Add to tool panels map
         toolPanels.put("JSON to CSV", JsonToCsvPanel.class);
         toolPanels.put("CSV Mapping", CsvMappingPanel.class);
         toolPanels.put("CSV Editor", CsvEditorPanel.class);
+        toolPanels.put("CSV Merge", CsvMergePanel.class);
         
         // Build tree structure
         buildTreeNodes();
