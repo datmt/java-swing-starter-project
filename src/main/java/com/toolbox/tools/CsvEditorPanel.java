@@ -99,12 +99,16 @@ public class CsvEditorPanel extends JPanel {
 
                         // Check if text is truncated
                         if (textWidth > cellWidth - 4) { // 4 pixels for padding
-                            // Format tooltip text with line wrapping
-                            String tooltipText = "<html><body style='width: 300px'>" +
+                            // Calculate optimal width for tooltip (max 300px, min 100px)
+                            int tooltipWidth = Math.min(300, Math.max(100, textWidth / 2));
+
+                            // Format tooltip text with dynamic width and proper wrapping
+                            String tooltipText = "<html><div style='width: " + tooltipWidth + "px; padding: 5px;'>" + 
                                                text.replace("<", "&lt;")
                                                    .replace(">", "&gt;")
-                                                   .replace("\n", "<br>") +
-                                               "</body></html>";
+                                                   .replace("\n", "<br>")
+                                                   .replace(" ", "&nbsp;") + 
+                                               "</div></html>";
                             jc.setToolTipText(tooltipText);
                         } else {
                             jc.setToolTipText(null);
@@ -890,33 +894,51 @@ public class CsvEditorPanel extends JPanel {
         Frame owner = (Frame) SwingUtilities.getWindowAncestor(this);
 
         JDialog dialog = new JDialog(owner, "Filter Data", true);
-        dialog.setLayout(new BorderLayout());
+        dialog.setLayout(new BorderLayout(0, 5));  // 5px vertical gap
 
         // Create main panel with filter conditions
-        JPanel mainPanel = new JPanel();
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        JPanel mainPanel = new JPanel(new BorderLayout());
 
         // Scrollable container for filter conditions
         JPanel conditionsPanel = new JPanel();
         conditionsPanel.setLayout(new BoxLayout(conditionsPanel, BoxLayout.Y_AXIS));
-        JScrollPane scrollPane = new JScrollPane(conditionsPanel);
+        // Add some padding around conditions
+        conditionsPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        // Wrap conditionsPanel in another panel to prevent vertical centering
+        JPanel wrapperPanel = new JPanel(new BorderLayout());
+        wrapperPanel.add(conditionsPanel, BorderLayout.NORTH);
+
+        JScrollPane scrollPane = new JScrollPane(wrapperPanel);
         scrollPane.setPreferredSize(new Dimension(500, 300));
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         // List to keep track of filter conditions
         List<FilterCondition> filterConditions = new ArrayList<>();
 
-        // Add condition button
+        // Add condition button panel
+        JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
         JButton addConditionButton = new JButton("Add Condition");
         addConditionButton.addActionListener(e -> {
             FilterCondition condition = new FilterCondition(getColumnNames());
             filterConditions.add(condition);
             conditionsPanel.add(condition);
+            condition.setAlignmentX(Component.LEFT_ALIGNMENT);
             conditionsPanel.revalidate();
             conditionsPanel.repaint();
+
+            // Scroll to bottom to show new condition
+            SwingUtilities.invokeLater(() -> {
+                JScrollBar vertical = scrollPane.getVerticalScrollBar();
+                vertical.setValue(vertical.getMaximum());
+            });
         });
+        addButtonPanel.add(addConditionButton);
 
         // Control buttons panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 5));
         JButton applyButton = new JButton("Apply");
         JButton clearButton = new JButton("Clear");
         JButton cancelButton = new JButton("Cancel");
@@ -942,7 +964,7 @@ public class CsvEditorPanel extends JPanel {
         buttonPanel.add(cancelButton);
 
         // Add components to dialog
-        dialog.add(addConditionButton, BorderLayout.NORTH);
+        dialog.add(addButtonPanel, BorderLayout.NORTH);
         dialog.add(scrollPane, BorderLayout.CENTER);
         dialog.add(buttonPanel, BorderLayout.SOUTH);
 
@@ -989,12 +1011,22 @@ public class CsvEditorPanel extends JPanel {
         private JButton removeButton;
 
         public FilterCondition(String[] columns) {
-            setLayout(new FlowLayout(FlowLayout.LEFT));
+            setLayout(new FlowLayout(FlowLayout.LEFT, 5, 0));  // 5px horizontal gap, 0px vertical gap
+            setBorder(BorderFactory.createEmptyBorder(2, 0, 2, 0));  // Small vertical padding
 
             columnCombo = new JComboBox<>(columns);
             operatorCombo = new JComboBox<>(new String[]{"Equals", "Contains", "In List"});
             valueField = new JTextField(20);
             removeButton = new JButton("×");
+
+            // Make all components the same height
+            Dimension buttonSize = new Dimension(28, 28);
+            Dimension comboSize = new Dimension(120, 28);
+
+            columnCombo.setPreferredSize(comboSize);
+            operatorCombo.setPreferredSize(comboSize);
+            valueField.setPreferredSize(new Dimension(200, 28));
+            removeButton.setPreferredSize(buttonSize);
 
             removeButton.addActionListener(e -> {
                 Container parent = getParent();
