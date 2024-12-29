@@ -1034,7 +1034,10 @@ public class CsvEditorPanel extends JPanel {
             setBorder(BorderFactory.createEmptyBorder(2, 0, 2, 0));  // Small vertical padding
 
             columnCombo = new JComboBox<>(columns);
-            operatorCombo = new JComboBox<>(new String[]{"Equals", "Contains", "In List"});
+            operatorCombo = new JComboBox<>(new String[]{
+                "Equals", "Contains", "In List", 
+                "Greater Than", "Less Than", "Regex Match"
+            });
             valueField = new JTextField(20);
             removeButton = new JButton("×");
 
@@ -1079,10 +1082,10 @@ public class CsvEditorPanel extends JPanel {
             switch (operator) {
                 case "Equals":
                     return cellValue.equalsIgnoreCase(filterValue);
-
+                    
                 case "Contains":
                     return cellValue.toLowerCase().contains(filterValue.toLowerCase());
-
+                    
                 case "In List":
                     String[] items = filterValue.split(",");
                     for (String item : items) {
@@ -1092,6 +1095,34 @@ public class CsvEditorPanel extends JPanel {
                     }
                     return false;
 
+                case "Greater Than":
+                    try {
+                        double cellNum = Double.parseDouble(cellValue.replaceAll("[^\\d.-]", ""));
+                        double filterNum = Double.parseDouble(filterValue.replaceAll("[^\\d.-]", ""));
+                        return cellNum > filterNum;
+                    } catch (NumberFormatException e) {
+                        // If not numeric, do string comparison
+                        return cellValue.compareToIgnoreCase(filterValue) > 0;
+                    }
+
+                case "Less Than":
+                    try {
+                        double cellNum = Double.parseDouble(cellValue.replaceAll("[^\\d.-]", ""));
+                        double filterNum = Double.parseDouble(filterValue.replaceAll("[^\\d.-]", ""));
+                        return cellNum < filterNum;
+                    } catch (NumberFormatException e) {
+                        // If not numeric, do string comparison
+                        return cellValue.compareToIgnoreCase(filterValue) < 0;
+                    }
+
+                case "Regex Match":
+                    try {
+                        return cellValue.matches(filterValue);
+                    } catch (java.util.regex.PatternSyntaxException e) {
+                        // If invalid regex, treat as no match
+                        return false;
+                    }
+                    
                 default:
                     return true;
             }
