@@ -88,9 +88,37 @@ public class CsvEditorPanel extends JPanel {
                     }
                 }
 
+                // Set tooltip if cell content is truncated
+                if (comp instanceof JComponent) {
+                    JComponent jc = (JComponent)comp;
+                    if (value != null) {
+                        String text = value.toString();
+                        FontMetrics fm = comp.getFontMetrics(comp.getFont());
+                        int textWidth = fm.stringWidth(text);
+                        int cellWidth = table.getColumnModel().getColumn(column).getWidth();
+
+                        // Check if text is truncated
+                        if (textWidth > cellWidth - 4) { // 4 pixels for padding
+                            // Format tooltip text with line wrapping
+                            String tooltipText = "<html><body style='width: 300px'>" +
+                                               text.replace("<", "&lt;")
+                                                   .replace(">", "&gt;")
+                                                   .replace("\n", "<br>") +
+                                               "</body></html>";
+                            jc.setToolTipText(tooltipText);
+                        } else {
+                            jc.setToolTipText(null);
+                        }
+                    }
+                }
+
                 return comp;
             }
         };
+
+        // Configure tooltip display
+        ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE); // Keep tooltip visible
+        ToolTipManager.sharedInstance().setInitialDelay(500); // Show after 500ms
 
         table = new JTable(model);
         table.setDefaultRenderer(Object.class, customRenderer);
@@ -99,38 +127,38 @@ public class CsvEditorPanel extends JPanel {
         // Initialize the sorter with custom comparator
         sorter = new TableRowSorter<>(model);
         table.setRowSorter(sorter);
-        
+
         // Disable default sorting behavior
         table.getTableHeader().setReorderingAllowed(false);
         sorter.setSortsOnUpdates(false);
-        
+
         // Remove all existing mouse listeners from header
         for (MouseListener listener : table.getTableHeader().getMouseListeners()) {
             table.getTableHeader().removeMouseListener(listener);
         }
-        
+
         // Add our custom double-click listener
         table.getTableHeader().addMouseListener(new MouseAdapter() {
             private long lastClick = 0;
             private int lastColumn = -1;
-            
+
             @Override
             public void mouseClicked(MouseEvent e) {
                 int column = table.columnAtPoint(e.getPoint());
                 if (column == -1) return;
-                
+
                 long clickTime = System.currentTimeMillis();
-                
+
                 if (column == lastColumn && clickTime - lastClick < 500) {  // Double click within 500ms
                     e.consume();  // Prevent event propagation
                     sortColumn(column);
                 }
-                
+
                 lastColumn = column;
                 lastClick = clickTime;
             }
         });
-        
+
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         table.setFillsViewportHeight(true);
 
@@ -167,7 +195,7 @@ public class CsvEditorPanel extends JPanel {
         saveButton.setPreferredSize(new Dimension(28, 28));
         saveButton.setToolTipText("Save CSV File");
         saveButton.addActionListener(e -> saveFile());
-        
+
         JButton filterButton = new JButton();
         filterButton.setIcon(Icons.FILTER);
         filterButton.setPreferredSize(new Dimension(28, 28));
@@ -768,20 +796,20 @@ public class CsvEditorPanel extends JPanel {
     private void sortColumn(int column) {
         setProcessing(true);
         progressBar.setValue(0);
-        
+
         SwingWorker<Void, Integer> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() throws Exception {
                 DefaultTableModel model = (DefaultTableModel) table.getModel();
                 int rowCount = model.getRowCount();
-                
+
                 // Get current sort order
                 List<? extends RowSorter.SortKey> sortKeys = sorter.getSortKeys();
                 SortOrder currentOrder = SortOrder.UNSORTED;
                 if (!sortKeys.isEmpty() && sortKeys.get(0).getColumn() == column) {
                     currentOrder = sortKeys.get(0).getSortOrder();
                 }
-                
+
                 // Determine next sort order
                 SortOrder nextOrder;
                 switch (currentOrder) {
@@ -794,32 +822,32 @@ public class CsvEditorPanel extends JPanel {
                     default:
                         nextOrder = SortOrder.ASCENDING;
                 }
-                
+
                 // Enable sorting just for this column
                 for (int i = 0; i < model.getColumnCount(); i++) {
                     sorter.setSortable(i, i == column);
                 }
-                
+
                 // Prepare data for sorting in chunks
                 int chunkSize = 1000;
                 int totalChunks = (rowCount + chunkSize - 1) / chunkSize;
-                
+
                 for (int chunk = 0; chunk < totalChunks; chunk++) {
                     if (isCancelled()) {
                         break;
                     }
-                    
+
                     int progress = (chunk * 100) / totalChunks;
                     publish(progress);
-                    
+
                     // Process a chunk of rows
                     int start = chunk * chunkSize;
                     int end = Math.min(start + chunkSize, rowCount);
-                    
+
                     // Allow UI to update
                     Thread.sleep(1);
                 }
-                
+
                 // Set new sort order on EDT
                 SwingUtilities.invokeLater(() -> {
                     if (nextOrder == SortOrder.UNSORTED) {
@@ -828,18 +856,18 @@ public class CsvEditorPanel extends JPanel {
                         sorter.setSortKeys(List.of(new RowSorter.SortKey(column, nextOrder)));
                     }
                 });
-                
+
                 publish(100);
                 return null;
             }
-            
+
             @Override
             protected void process(List<Integer> chunks) {
                 if (!chunks.isEmpty()) {
                     progressBar.setValue(chunks.get(chunks.size() - 1));
                 }
             }
-            
+
             @Override
             protected void done() {
                 try {
@@ -853,30 +881,30 @@ public class CsvEditorPanel extends JPanel {
                 }
             }
         };
-        
+
         worker.execute();
     }
 
     private void showFilterDialog() {
         // Find the frame owner
         Frame owner = (Frame) SwingUtilities.getWindowAncestor(this);
-        
+
         JDialog dialog = new JDialog(owner, "Filter Data", true);
         dialog.setLayout(new BorderLayout());
-        
+
         // Create main panel with filter conditions
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        
+
         // Scrollable container for filter conditions
         JPanel conditionsPanel = new JPanel();
         conditionsPanel.setLayout(new BoxLayout(conditionsPanel, BoxLayout.Y_AXIS));
         JScrollPane scrollPane = new JScrollPane(conditionsPanel);
         scrollPane.setPreferredSize(new Dimension(500, 300));
-        
+
         // List to keep track of filter conditions
         List<FilterCondition> filterConditions = new ArrayList<>();
-        
+
         // Add condition button
         JButton addConditionButton = new JButton("Add Condition");
         addConditionButton.addActionListener(e -> {
@@ -886,18 +914,18 @@ public class CsvEditorPanel extends JPanel {
             conditionsPanel.revalidate();
             conditionsPanel.repaint();
         });
-        
+
         // Control buttons panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton applyButton = new JButton("Apply");
         JButton clearButton = new JButton("Clear");
         JButton cancelButton = new JButton("Cancel");
-        
+
         applyButton.addActionListener(e -> {
             applyFilters(filterConditions);
             dialog.dispose();
         });
-        
+
         clearButton.addActionListener(e -> {
             filterConditions.clear();
             conditionsPanel.removeAll();
@@ -906,23 +934,23 @@ public class CsvEditorPanel extends JPanel {
             sorter.setRowFilter(null);
             table.repaint();
         });
-        
+
         cancelButton.addActionListener(e -> dialog.dispose());
-        
+
         buttonPanel.add(applyButton);
         buttonPanel.add(clearButton);
         buttonPanel.add(cancelButton);
-        
+
         // Add components to dialog
         dialog.add(addConditionButton, BorderLayout.NORTH);
         dialog.add(scrollPane, BorderLayout.CENTER);
         dialog.add(buttonPanel, BorderLayout.SOUTH);
-        
+
         dialog.pack();
         dialog.setLocationRelativeTo(this);
         dialog.setVisible(true);
     }
-    
+
     private String[] getColumnNames() {
         DefaultTableModel model = (DefaultTableModel) table.getModel();
         String[] columns = new String[model.getColumnCount()];
@@ -931,13 +959,13 @@ public class CsvEditorPanel extends JPanel {
         }
         return columns;
     }
-    
+
     private void applyFilters(List<FilterCondition> conditions) {
         if (conditions.isEmpty()) {
             sorter.setRowFilter(null);
             return;
         }
-        
+
         RowFilter<DefaultTableModel, Integer> filter = new RowFilter<>() {
             @Override
             public boolean include(Entry<? extends DefaultTableModel, ? extends Integer> entry) {
@@ -949,55 +977,55 @@ public class CsvEditorPanel extends JPanel {
                 return true;
             }
         };
-        
+
         sorter.setRowFilter(filter);
     }
-    
+
     // Inner class for filter condition UI and logic
     private class FilterCondition extends JPanel {
         private JComboBox<String> columnCombo;
         private JComboBox<String> operatorCombo;
         private JTextField valueField;
         private JButton removeButton;
-        
+
         public FilterCondition(String[] columns) {
             setLayout(new FlowLayout(FlowLayout.LEFT));
-            
+
             columnCombo = new JComboBox<>(columns);
             operatorCombo = new JComboBox<>(new String[]{"Equals", "Contains", "In List"});
             valueField = new JTextField(20);
             removeButton = new JButton("×");
-            
+
             removeButton.addActionListener(e -> {
                 Container parent = getParent();
                 parent.remove(this);
                 parent.revalidate();
                 parent.repaint();
             });
-            
+
             add(columnCombo);
             add(operatorCombo);
             add(valueField);
             add(removeButton);
         }
-        
+
         public boolean evaluate(Entry<? extends DefaultTableModel, ? extends Integer> entry) {
             int columnIndex = columnCombo.getSelectedIndex();
             String cellValue = String.valueOf(entry.getValue(columnIndex));
             String filterValue = valueField.getText().trim();
             String operator = (String) operatorCombo.getSelectedItem();
-            
+
             if (filterValue.isEmpty()) {
                 return true;
             }
-            
+
             switch (operator) {
                 case "Equals":
                     return cellValue.equalsIgnoreCase(filterValue);
-                    
+
                 case "Contains":
                     return cellValue.toLowerCase().contains(filterValue.toLowerCase());
-                    
+
                 case "In List":
                     String[] items = filterValue.split(",");
                     for (String item : items) {
@@ -1006,7 +1034,7 @@ public class CsvEditorPanel extends JPanel {
                         }
                     }
                     return false;
-                    
+
                 default:
                     return true;
             }
