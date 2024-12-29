@@ -36,6 +36,7 @@ public class CsvEditorPanel extends JPanel {
     private JButton replaceAllButton;
     private JCheckBox matchCaseCheckBox;
     private JCheckBox exactMatchCheckBox;
+    private JCheckBox regexCheckBox;
     private List<Point> matchingCells = new ArrayList<>();
     private int currentMatchIndex = -1;
     private JProgressBar progressBar;
@@ -138,7 +139,10 @@ public class CsvEditorPanel extends JPanel {
         
         exactMatchCheckBox = new JCheckBox("Exact");
         exactMatchCheckBox.setToolTipText("Match Entire Cell Content");
-        exactMatchCheckBox.addActionListener(e -> updateSearch());
+        
+        regexCheckBox = new JCheckBox(".*");
+        regexCheckBox.setToolTipText("Use Regular Expression");
+        regexCheckBox.addActionListener(e -> updateSearch());
 
         // First row: file controls and view mode
         topPanel.add(openButton, "cell 0 0");
@@ -151,7 +155,8 @@ public class CsvEditorPanel extends JPanel {
         searchPanel.add(searchField, "growx");
         searchPanel.add(findNextButton, "");
         searchPanel.add(matchCaseCheckBox, "");
-        searchPanel.add(exactMatchCheckBox, "wrap");
+        searchPanel.add(exactMatchCheckBox, "");
+        searchPanel.add(regexCheckBox, "wrap");
         
         searchPanel.add(new JLabel("Replace:"), "");
         searchPanel.add(replaceField, "growx");
@@ -226,8 +231,17 @@ public class CsvEditorPanel extends JPanel {
         DefaultTableModel model = (DefaultTableModel) table.getModel();
         boolean caseSensitive = matchCaseCheckBox.isSelected();
         boolean exactMatch = exactMatchCheckBox.isSelected();
+        boolean useRegex = regexCheckBox.isSelected();
         
-        if (!caseSensitive) {
+        Pattern pattern = null;
+        if (useRegex) {
+            try {
+                pattern = Pattern.compile(searchText, caseSensitive ? 0 : Pattern.CASE_INSENSITIVE);
+            } catch (Exception e) {
+                showError("Invalid regular expression: " + e.getMessage());
+                return;
+            }
+        } else if (!caseSensitive) {
             searchText = searchText.toLowerCase();
         }
 
@@ -236,15 +250,17 @@ public class CsvEditorPanel extends JPanel {
                 Object value = model.getValueAt(row, col);
                 if (value != null) {
                     String cellText = value.toString();
-                    if (!caseSensitive) {
-                        cellText = cellText.toLowerCase();
-                    }
+                    boolean matches = false;
                     
-                    boolean matches;
-                    if (exactMatch) {
-                        matches = cellText.equals(searchText);
+                    if (useRegex) {
+                        matches = pattern.matcher(cellText).find();
                     } else {
-                        matches = cellText.contains(searchText);
+                        String compareText = caseSensitive ? cellText : cellText.toLowerCase();
+                        if (exactMatch) {
+                            matches = compareText.equals(searchText);
+                        } else {
+                            matches = compareText.contains(searchText);
+                        }
                     }
                     
                     if (matches) {
@@ -253,9 +269,10 @@ public class CsvEditorPanel extends JPanel {
                 }
             }
         }
+        
         table.repaint();
         if (!matchingCells.isEmpty()) {
-            findNext(); // Move to first match
+            findNext();
         }
     }
 
@@ -277,36 +294,45 @@ public class CsvEditorPanel extends JPanel {
         if (currentMatchIndex >= 0 && currentMatchIndex < matchingCells.size()) {
             Point match = matchingCells.get(currentMatchIndex);
             String replaceText = replaceField.getText();
+            boolean useRegex = regexCheckBox.isSelected();
             
-            // If in exact match mode, replace the entire cell
-            if (exactMatchCheckBox.isSelected()) {
-                table.setValueAt(replaceText, match.x, match.y);
-            } else {
-                // Otherwise, replace only the matching portion
-                Object value = table.getValueAt(match.x, match.y);
-                if (value != null) {
-                    String cellText = value.toString();
-                    String searchText = searchField.getText();
-                    
+            Object value = table.getValueAt(match.x, match.y);
+            if (value != null) {
+                String cellText = value.toString();
+                String searchText = searchField.getText();
+                String newText;
+                
+                if (useRegex) {
+                    try {
+                        Pattern pattern = Pattern.compile(searchText, 
+                            matchCaseCheckBox.isSelected() ? 0 : Pattern.CASE_INSENSITIVE);
+                        newText = pattern.matcher(cellText).replaceAll(replaceText);
+                    } catch (Exception e) {
+                        showError("Invalid regular expression or replacement: " + e.getMessage());
+                        return;
+                    }
+                } else if (exactMatchCheckBox.isSelected()) {
+                    newText = replaceText;
+                } else {
                     if (!matchCaseCheckBox.isSelected()) {
                         String cellTextLower = cellText.toLowerCase();
                         String searchTextLower = searchText.toLowerCase();
                         int start = cellTextLower.indexOf(searchTextLower);
                         if (start >= 0) {
-                            String newText = cellText.substring(0, start) + 
-                                           replaceText + 
-                                           cellText.substring(start + searchText.length());
-                            table.setValueAt(newText, match.x, match.y);
+                            newText = cellText.substring(0, start) + 
+                                     replaceText + 
+                                     cellText.substring(start + searchText.length());
+                        } else {
+                            return;
                         }
                     } else {
-                        String newText = cellText.replace(searchText, replaceText);
-                        table.setValueAt(newText, match.x, match.y);
+                        newText = cellText.replace(searchText, replaceText);
                     }
                 }
+                
+                table.setValueAt(newText, match.x, match.y);
+                updateSearch();
             }
-            
-            // Update search to reflect changes
-            updateSearch();
         }
     }
 
@@ -316,49 +342,64 @@ public class CsvEditorPanel extends JPanel {
         String replaceText = replaceField.getText();
         boolean caseSensitive = matchCaseCheckBox.isSelected();
         boolean exactMatch = exactMatchCheckBox.isSelected();
+        boolean useRegex = regexCheckBox.isSelected();
         
         if (searchText.isEmpty()) {
             return;
         }
 
-        // Start background task
+        Pattern pattern = null;
+        if (useRegex) {
+            try {
+                pattern = Pattern.compile(searchText, caseSensitive ? 0 : Pattern.CASE_INSENSITIVE);
+            } catch (Exception e) {
+                showError("Invalid regular expression: " + e.getMessage());
+                return;
+            }
+        }
+
+        final Pattern finalPattern = pattern;
+        
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             private int totalReplacements = 0;
 
             @Override
             protected Void doInBackground() {
                 try {
-                    // Process each cell
                     for (int row = 0; row < model.getRowCount(); row++) {
                         for (int col = 0; col < model.getColumnCount(); col++) {
                             Object value = model.getValueAt(row, col);
                             if (value != null) {
                                 String cellText = value.toString();
-                                String compareCellText = caseSensitive ? cellText : cellText.toLowerCase();
-                                String compareSearchText = caseSensitive ? searchText : searchText.toLowerCase();
-
-                                boolean matches;
-                                if (exactMatch) {
-                                    matches = compareCellText.equals(compareSearchText);
-                                } else {
-                                    matches = compareCellText.contains(compareSearchText);
-                                }
-
-                                if (matches) {
-                                    if (exactMatch) {
-                                        model.setValueAt(replaceText, row, col);
+                                String newText = null;
+                                
+                                if (useRegex) {
+                                    if (finalPattern.matcher(cellText).find()) {
+                                        newText = finalPattern.matcher(cellText).replaceAll(replaceText);
                                         totalReplacements++;
-                                    } else {
-                                        String newText = caseSensitive ?
+                                    }
+                                } else {
+                                    String compareCellText = caseSensitive ? cellText : cellText.toLowerCase();
+                                    String compareSearchText = caseSensitive ? searchText : searchText.toLowerCase();
+
+                                    if (exactMatch) {
+                                        if (compareCellText.equals(compareSearchText)) {
+                                            newText = replaceText;
+                                            totalReplacements++;
+                                        }
+                                    } else if (compareCellText.contains(compareSearchText)) {
+                                        newText = caseSensitive ?
                                             cellText.replace(searchText, replaceText) :
                                             cellText.replaceAll("(?i)" + Pattern.quote(searchText), replaceText);
-                                        model.setValueAt(newText, row, col);
                                         totalReplacements++;
                                     }
                                 }
+                                
+                                if (newText != null) {
+                                    model.setValueAt(newText, row, col);
+                                }
                             }
                             
-                            // Add a small delay to prevent UI from becoming completely unresponsive
                             if ((row * model.getColumnCount() + col) % 1000 == 0) {
                                 Thread.sleep(1);
                             }
@@ -372,14 +413,10 @@ public class CsvEditorPanel extends JPanel {
 
             @Override
             protected void done() {
-                // Re-enable UI
                 setProcessing(false);
-                
-                // Update search state
                 clearSearchState();
                 updateSearch();
                 
-                // Show completion message
                 JOptionPane.showMessageDialog(CsvEditorPanel.this,
                     String.format("Replaced %d occurrence%s", 
                         totalReplacements,
@@ -389,7 +426,6 @@ public class CsvEditorPanel extends JPanel {
             }
         };
 
-        // Start processing
         setProcessing(true);
         worker.execute();
     }
@@ -626,7 +662,6 @@ public class CsvEditorPanel extends JPanel {
         isProcessing = processing;
         progressBar.setVisible(processing);
         
-        // Disable all interactive components
         searchField.setEnabled(!processing);
         replaceField.setEnabled(!processing);
         findNextButton.setEnabled(!processing);
@@ -634,6 +669,7 @@ public class CsvEditorPanel extends JPanel {
         replaceAllButton.setEnabled(!processing);
         matchCaseCheckBox.setEnabled(!processing);
         exactMatchCheckBox.setEnabled(!processing);
+        regexCheckBox.setEnabled(!processing);
         table.setEnabled(!processing);
         textArea.setEnabled(!processing);
     }
