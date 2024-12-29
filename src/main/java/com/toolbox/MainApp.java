@@ -18,7 +18,7 @@ public class MainApp extends JFrame {
     private JPanel rightPanel;
 
     public MainApp() {
-        super("Desktop Tools");
+        super("BC18 Spreadsheet Tools");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1024, 768);
         setLocationRelativeTo(null);
