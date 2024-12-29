@@ -97,41 +97,38 @@ public class CsvEditorPanel extends JPanel {
         // Initialize the sorter with custom comparator
         sorter = new TableRowSorter<>(model);
         table.setRowSorter(sorter);
-
-        // Custom comparator for mixed number/text content
-        Comparator<String> mixedComparator = (s1, s2) -> {
-            if (s1 == null && s2 == null) return 0;
-            if (s1 == null) return -1;
-            if (s2 == null) return 1;
-
-            // Try parsing as numbers first
-            try {
-                double d1 = Double.parseDouble(s1);
-                try {
-                    double d2 = Double.parseDouble(s2);
-                    return Double.compare(d1, d2);
-                } catch (NumberFormatException e) {
-                    return 1; // Numbers come after text
+        
+        // Disable default sorting behavior
+        table.getTableHeader().setReorderingAllowed(false);
+        sorter.setSortsOnUpdates(false);
+        
+        // Remove all existing mouse listeners from header
+        for (MouseListener listener : table.getTableHeader().getMouseListeners()) {
+            table.getTableHeader().removeMouseListener(listener);
+        }
+        
+        // Add our custom double-click listener
+        table.getTableHeader().addMouseListener(new MouseAdapter() {
+            private long lastClick = 0;
+            private int lastColumn = -1;
+            
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int column = table.columnAtPoint(e.getPoint());
+                if (column == -1) return;
+                
+                long clickTime = System.currentTimeMillis();
+                
+                if (column == lastColumn && clickTime - lastClick < 500) {  // Double click within 500ms
+                    e.consume();  // Prevent event propagation
+                    sortColumn(column);
                 }
-            } catch (NumberFormatException e) {
-                try {
-                    Double.parseDouble(s2);
-                    return -1; // Text comes before numbers
-                } catch (NumberFormatException e2) {
-                    return s1.compareTo(s2); // Both are text
-                }
-            }
-        };
-
-        // Add sort key listener to maintain sort state
-        sorter.addRowSorterListener(e -> {
-            List<? extends RowSorter.SortKey> sortKeys = sorter.getSortKeys();
-            if (!sortKeys.isEmpty()) {
-                updateSearchHighlights();
+                
+                lastColumn = column;
+                lastClick = clickTime;
             }
         });
-
-        table.getTableHeader().setReorderingAllowed(false);
+        
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         table.setFillsViewportHeight(true);
 
@@ -541,34 +538,11 @@ public class CsvEditorPanel extends JPanel {
                     // Reset sorter with custom comparator
                     sorter = new TableRowSorter<>(model);
                     table.setRowSorter(sorter);
+                    sorter.setSortsOnUpdates(false);
 
-                    // Set comparator for each column
-                    Comparator<String> mixedComparator = (s1, s2) -> {
-                        if (s1 == null && s2 == null) return 0;
-                        if (s1 == null) return -1;
-                        if (s2 == null) return 1;
-
-                        // Try parsing as numbers first
-                        try {
-                            double d1 = Double.parseDouble(s1);
-                            try {
-                                double d2 = Double.parseDouble(s2);
-                                return Double.compare(d1, d2);
-                            } catch (NumberFormatException e) {
-                                return 1; // Numbers come after text
-                            }
-                        } catch (NumberFormatException e) {
-                            try {
-                                Double.parseDouble(s2);
-                                return -1; // Text comes before numbers
-                            } catch (NumberFormatException e2) {
-                                return s1.compareTo(s2); // Both are text
-                            }
-                        }
-                    };
-
+                    // Initially disable sorting for all columns
                     for (int i = 0; i < model.getColumnCount(); i++) {
-                        sorter.setComparator(i, mixedComparator);
+                        sorter.setSortable(i, false);
                     }
                 }
 
@@ -780,5 +754,97 @@ public class CsvEditorPanel extends JPanel {
         }
         matchingCells = newMatchingCells;
         table.repaint();
+    }
+
+    private void sortColumn(int column) {
+        setProcessing(true);
+        progressBar.setValue(0);
+        
+        SwingWorker<Void, Integer> worker = new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                DefaultTableModel model = (DefaultTableModel) table.getModel();
+                int rowCount = model.getRowCount();
+                
+                // Get current sort order
+                List<? extends RowSorter.SortKey> sortKeys = sorter.getSortKeys();
+                SortOrder currentOrder = SortOrder.UNSORTED;
+                if (!sortKeys.isEmpty() && sortKeys.get(0).getColumn() == column) {
+                    currentOrder = sortKeys.get(0).getSortOrder();
+                }
+                
+                // Determine next sort order
+                SortOrder nextOrder;
+                switch (currentOrder) {
+                    case ASCENDING:
+                        nextOrder = SortOrder.DESCENDING;
+                        break;
+                    case DESCENDING:
+                        nextOrder = SortOrder.UNSORTED;
+                        break;
+                    default:
+                        nextOrder = SortOrder.ASCENDING;
+                }
+                
+                // Enable sorting just for this column
+                for (int i = 0; i < model.getColumnCount(); i++) {
+                    sorter.setSortable(i, i == column);
+                }
+                
+                // Prepare data for sorting in chunks
+                int chunkSize = 1000;
+                int totalChunks = (rowCount + chunkSize - 1) / chunkSize;
+                
+                for (int chunk = 0; chunk < totalChunks; chunk++) {
+                    if (isCancelled()) {
+                        break;
+                    }
+                    
+                    int progress = (chunk * 100) / totalChunks;
+                    publish(progress);
+                    
+                    // Process a chunk of rows
+                    int start = chunk * chunkSize;
+                    int end = Math.min(start + chunkSize, rowCount);
+                    
+                    // Allow UI to update
+                    Thread.sleep(1);
+                }
+                
+                // Set new sort order on EDT
+                SwingUtilities.invokeLater(() -> {
+                    if (nextOrder == SortOrder.UNSORTED) {
+                        sorter.setSortKeys(null);
+                    } else {
+                        sorter.setSortKeys(List.of(new RowSorter.SortKey(column, nextOrder)));
+                    }
+                });
+                
+                publish(100);
+                return null;
+            }
+            
+            @Override
+            protected void process(List<Integer> chunks) {
+                if (!chunks.isEmpty()) {
+                    progressBar.setValue(chunks.get(chunks.size() - 1));
+                }
+            }
+            
+            @Override
+            protected void done() {
+                try {
+                    get(); // Check for exceptions
+                    progressBar.setValue(100);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    setProcessing(false);
+                    table.repaint();
+                }
+            }
+        };
+        
+        worker.execute();
     }
 }
