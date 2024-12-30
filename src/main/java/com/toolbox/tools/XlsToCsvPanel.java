@@ -7,6 +7,10 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableModel;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -36,6 +40,8 @@ public class XlsToCsvPanel extends JPanel {
     private final JButton removeSelectedButton;
     private File outputDirectory;
     private final ExecutorService executor;
+
+    private final Logger log = LoggerFactory.getLogger(XlsToCsvPanel.class);
 
     public XlsToCsvPanel() {
         setLayout(new MigLayout("fillx, insets 20", "[grow]", "[]10[]10[]10[]10[]"));
@@ -226,6 +232,7 @@ public class XlsToCsvPanel extends JPanel {
                         ConversionResult result = SpreadsheetConverter.convertToCSV(inputFile, outputDir);
                         results.add(result);
                     } catch (Exception e) {
+                        log.error("Error during conversion", e);
                         results.add(new ConversionResult(inputFile, e.getMessage()));
                     }
                 }
@@ -235,6 +242,7 @@ public class XlsToCsvPanel extends JPanel {
                     setControlsEnabled(true);
                 });
             } catch (Exception e) {
+                log.error("Error during conversion", e);
                 SwingUtilities.invokeLater(() -> {
                     JOptionPane.showMessageDialog(this, 
                         "Error during conversion: " + e.getMessage(), 

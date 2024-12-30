@@ -4,6 +4,8 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.jopendocument.dom.spreadsheet.SpreadSheet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -17,7 +19,7 @@ import java.util.regex.Pattern;
 
 public class SpreadsheetConverter {
     private static final Pattern INVALID_CHARS = Pattern.compile("[^a-zA-Z0-9-_.]");
-    
+    private static final Logger log = LoggerFactory.getLogger(SpreadsheetConverter.class);    
     public static ConversionResult convertToCSV(File inputFile, File outputDir) throws IOException {
         List<File> outputFiles = new ArrayList<>();
         try {
@@ -35,6 +37,7 @@ public class SpreadsheetConverter {
             }
             return new ConversionResult(inputFile, outputFiles);
         } catch (Exception e) {
+            log.error("Error during conversion", e);
             return new ConversionResult(inputFile, e.getMessage());
         }
     }
