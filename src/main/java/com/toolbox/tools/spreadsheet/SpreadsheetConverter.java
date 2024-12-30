@@ -42,6 +42,9 @@ public class SpreadsheetConverter {
     private static List<File> convertExcelToCSV(File inputFile, File outputDir) throws IOException {
         List<File> outputFiles = new ArrayList<>();
         try (Workbook workbook = WorkbookFactory.create(inputFile)) {
+            // Create formula evaluator
+            FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+            
             int sheetCount = workbook.getNumberOfSheets();
             for (int i = 0; i < sheetCount; i++) {
                 org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheetAt(i);
@@ -61,7 +64,7 @@ public class SpreadsheetConverter {
                             if (line.length() > 0) {
                                 line.append(",");
                             }
-                            line.append(getCellValueAsString(cell));
+                            line.append(getCellValueAsString(cell, evaluator));
                         }
                         bw.write(line.toString());
                         bw.newLine();
@@ -116,7 +119,7 @@ public class SpreadsheetConverter {
         return outputFiles;
     }
 
-    private static String getCellValueAsString(Cell cell) {
+    private static String getCellValueAsString(Cell cell, FormulaEvaluator evaluator) {
         if (cell == null) {
             return "";
         }
@@ -137,14 +140,19 @@ public class SpreadsheetConverter {
                 value = String.valueOf(cell.getBooleanCellValue());
                 break;
             case FORMULA:
-                try {
-                    value = String.valueOf(cell.getNumericCellValue());
-                } catch (IllegalStateException e) {
-                    try {
-                        value = String.valueOf(cell.getStringCellValue());
-                    } catch (IllegalStateException e2) {
-                        value = cell.getCellFormula();
-                    }
+                CellValue cellValue = evaluator.evaluate(cell);
+                switch (cellValue.getCellType()) {
+                    case STRING:
+                        value = cellValue.getStringValue();
+                        break;
+                    case NUMERIC:
+                        value = String.valueOf(cellValue.getNumberValue());
+                        break;
+                    case BOOLEAN:
+                        value = String.valueOf(cellValue.getBooleanValue());
+                        break;
+                    default:
+                        value = "";
                 }
                 break;
             default:
