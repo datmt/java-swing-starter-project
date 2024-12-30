@@ -137,7 +137,7 @@ public class XlsToCsvPanel extends JPanel {
         JFileChooser chooser = new JFileChooser();
         chooser.setMultiSelectionEnabled(true);
         chooser.setFileFilter(new FileNameExtensionFilter(
-            "Spreadsheet files (*.xlsx, *.xls, *.ods)", "xlsx", "xls", "ods"));
+            "Excel files (*.xlsx, *.xls)", "xlsx", "xls"));
 
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             for (File file : chooser.getSelectedFiles()) {
@@ -161,8 +161,7 @@ public class XlsToCsvPanel extends JPanel {
                     .filter(path -> {
                         String name = path.toString().toLowerCase();
                         return name.endsWith(".xlsx") || 
-                               name.endsWith(".xls") || 
-                               name.endsWith(".ods");
+                               name.endsWith(".xls");
                     })
                     .map(Path::toFile)
                     .collect(Collectors.toList());

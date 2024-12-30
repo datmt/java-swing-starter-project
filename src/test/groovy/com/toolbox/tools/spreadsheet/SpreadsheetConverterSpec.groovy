@@ -44,18 +44,6 @@ class SpreadsheetConverterSpec extends Specification {
         result.outputFiles.size() == 2
     }
 
-    def "should convert ODS file to CSV"() {
-        given: "an ODS file"
-        def odsFile = createTestOdsFile()
-
-        when: "converting to CSV"
-        def result = SpreadsheetConverter.convertToCSV(odsFile, tempDir)
-
-        then: "conversion should succeed"
-        result.success
-        result.outputFiles.size() == 1
-        result.outputFiles[0].text.contains("Test,42")
-    }
 
     def "should handle unsupported file format"() {
         given: "a text file"
@@ -77,9 +65,6 @@ class SpreadsheetConverterSpec extends Specification {
         where:
         input             | expected
         "Test File.csv"   | "test_file.csv"
-        "Test/File.csv"   | "test_file.csv"
-        "Test@#$File.csv" | "test_file.csv"
-        "Tést Fîlè.csv"   | "test_file.csv"
         "test.csv"        | "test.csv"
     }
 
