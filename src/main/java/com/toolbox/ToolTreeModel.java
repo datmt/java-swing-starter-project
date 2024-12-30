@@ -6,6 +6,7 @@ import com.toolbox.tools.JsonToCsvPanel;
 import com.toolbox.tools.CsvMergePanel;
 import com.toolbox.tools.SpreadsheetSearchPanel;
 import com.toolbox.tools.SpreadsheetSearchReplacePanel;
+import com.toolbox.tools.XlsToCsvPanel;
 import com.toolbox.license.LicensePanel;
 
 import javax.swing.*;
@@ -60,6 +61,10 @@ public class ToolTreeModel extends DefaultTreeModel {
         // Create Spreadsheet Search & Replace tool with lazy initialization
         Tool spreadsheetSearchReplaceTool = new Tool("Search & Replace", SpreadsheetSearchReplacePanel::new, false);
         csvCategory.addChild(spreadsheetSearchReplaceTool);
+
+        // Create XLS(X) to CSV tool with lazy initialization
+        Tool xlsToCsvTool = new Tool("XLS(X) to CSV", XlsToCsvPanel::new, false);
+        csvCategory.addChild(xlsToCsvTool);
         
         // Add to all tools list
         allTools.add(jsonCategory);
@@ -70,6 +75,7 @@ public class ToolTreeModel extends DefaultTreeModel {
         allTools.add(csvMergeTool);
         allTools.add(spreadsheetSearchTool);
         allTools.add(spreadsheetSearchReplaceTool);
+        allTools.add(xlsToCsvTool);
         
         // Add to tool panels map
         toolPanels.put("JSON to CSV", JsonToCsvPanel.class);
@@ -78,6 +84,7 @@ public class ToolTreeModel extends DefaultTreeModel {
         toolPanels.put("CSV Merge", CsvMergePanel.class);
         toolPanels.put("Spreadsheet Search", SpreadsheetSearchPanel.class);
         toolPanels.put("Search & Replace", SpreadsheetSearchReplacePanel.class);
+        toolPanels.put("XLS(X) to CSV", XlsToCsvPanel.class);
         
         // Build tree structure
         buildTreeNodes();
