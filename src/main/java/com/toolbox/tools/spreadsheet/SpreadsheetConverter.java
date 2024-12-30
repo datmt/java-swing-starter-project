@@ -18,28 +18,34 @@ import java.util.regex.Pattern;
 public class SpreadsheetConverter {
     private static final Pattern INVALID_CHARS = Pattern.compile("[^a-zA-Z0-9-_.]");
     
-    public static void convertToCSV(File inputFile, File outputDir, Consumer<String> progressCallback) throws IOException {
-        String extension = getFileExtension(inputFile).toLowerCase();
-        switch (extension) {
-            case "xlsx":
-            case "xls":
-                convertExcelToCSV(inputFile, outputDir, progressCallback);
-                break;
-            case "ods":
-                convertOdsToCSV(inputFile, outputDir, progressCallback);
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported file format: " + extension);
+    public static ConversionResult convertToCSV(File inputFile, File outputDir) throws IOException {
+        List<File> outputFiles = new ArrayList<>();
+        try {
+            String extension = getFileExtension(inputFile).toLowerCase();
+            switch (extension) {
+                case "xlsx":
+                case "xls":
+                    outputFiles.addAll(convertExcelToCSV(inputFile, outputDir));
+                    break;
+                case "ods":
+                    outputFiles.addAll(convertOdsToCSV(inputFile, outputDir));
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported file format: " + extension);
+            }
+            return new ConversionResult(inputFile, outputFiles);
+        } catch (Exception e) {
+            return new ConversionResult(inputFile, e.getMessage());
         }
     }
 
-    private static void convertExcelToCSV(File inputFile, File outputDir, Consumer<String> progressCallback) throws IOException {
+    private static List<File> convertExcelToCSV(File inputFile, File outputDir) throws IOException {
+        List<File> outputFiles = new ArrayList<>();
         try (Workbook workbook = WorkbookFactory.create(inputFile)) {
             int sheetCount = workbook.getNumberOfSheets();
             for (int i = 0; i < sheetCount; i++) {
                 org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheetAt(i);
                 String sheetName = sheet.getSheetName();
-                progressCallback.accept("Converting sheet: " + sheetName);
                 
                 String baseFileName = getBaseFileName(inputFile.getName());
                 String csvFileName = normalizeFileName(baseFileName + "_" + sheetName + ".csv");
@@ -61,11 +67,14 @@ public class SpreadsheetConverter {
                         bw.newLine();
                     }
                 }
+                outputFiles.add(csvFile);
             }
         }
+        return outputFiles;
     }
 
-    private static void convertOdsToCSV(File inputFile, File outputDir, Consumer<String> progressCallback) throws IOException {
+    private static List<File> convertOdsToCSV(File inputFile, File outputDir) throws IOException {
+        List<File> outputFiles = new ArrayList<>();
         try {
             SpreadSheet spreadSheet = SpreadSheet.createFromFile(inputFile);
             int sheetCount = spreadSheet.getSheetCount();
@@ -73,7 +82,6 @@ public class SpreadsheetConverter {
             for (int i = 0; i < sheetCount; i++) {
                 org.jopendocument.dom.spreadsheet.Sheet sheet = spreadSheet.getSheet(i);
                 String sheetName = sheet.getName();
-                progressCallback.accept("Converting sheet: " + sheetName);
                 
                 String baseFileName = getBaseFileName(inputFile.getName());
                 String csvFileName = normalizeFileName(baseFileName + "_" + sheetName + ".csv");
@@ -100,10 +108,12 @@ public class SpreadsheetConverter {
                         bw.newLine();
                     }
                 }
+                outputFiles.add(csvFile);
             }
         } catch (Exception e) {
             throw new IOException("Error converting ODS file: " + e.getMessage(), e);
         }
+        return outputFiles;
     }
 
     private static String getCellValueAsString(Cell cell) {
