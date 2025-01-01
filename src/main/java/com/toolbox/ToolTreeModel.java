@@ -7,6 +7,7 @@ import com.toolbox.tools.CsvMergePanel;
 import com.toolbox.tools.SpreadsheetSearchPanel;
 import com.toolbox.tools.SpreadsheetSearchReplacePanel;
 import com.toolbox.tools.XlsToCsvPanel;
+import com.toolbox.tools.csv.CsvDiffPanel;
 import com.toolbox.license.LicensePanel;
 
 import javax.swing.*;
@@ -54,6 +55,10 @@ public class ToolTreeModel extends DefaultTreeModel {
         Tool csvMergeTool = new Tool("CSV Merge", CsvMergePanel::new, false);
         csvCategory.addChild(csvMergeTool);
 
+        // Create CSV Diff tool with lazy initialization
+        Tool csvDiffTool = new Tool("CSV Diff", CsvDiffPanel::new, false);
+        csvCategory.addChild(csvDiffTool);
+
         // Create Spreadsheet Search tool with lazy initialization
         Tool spreadsheetSearchTool = new Tool("Spreadsheet Search", SpreadsheetSearchPanel::new, false);
         csvCategory.addChild(spreadsheetSearchTool);
@@ -73,6 +78,7 @@ public class ToolTreeModel extends DefaultTreeModel {
         allTools.add(csvMappingTool);
         allTools.add(csvEditorTool);
         allTools.add(csvMergeTool);
+        allTools.add(csvDiffTool);
         allTools.add(spreadsheetSearchTool);
         allTools.add(spreadsheetSearchReplaceTool);
         allTools.add(xlsToCsvTool);
@@ -82,6 +88,7 @@ public class ToolTreeModel extends DefaultTreeModel {
         toolPanels.put("CSV Mapping", CsvMappingPanel.class);
         toolPanels.put("CSV Editor", CsvEditorPanel.class);
         toolPanels.put("CSV Merge", CsvMergePanel.class);
+        toolPanels.put("CSV Diff", CsvDiffPanel.class);
         toolPanels.put("Spreadsheet Search", SpreadsheetSearchPanel.class);
         toolPanels.put("Search & Replace", SpreadsheetSearchReplacePanel.class);
         toolPanels.put("XLS(X) to CSV", XlsToCsvPanel.class);
