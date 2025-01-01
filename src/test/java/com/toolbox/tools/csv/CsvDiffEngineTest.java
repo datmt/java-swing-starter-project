@@ -185,6 +185,34 @@ class CsvDiffEngineTest {
     }
 
     @Test
+    void testStrictRowOrderComparison() throws IOException {
+        File file1 = createCsvFile("file1.csv",
+            "id,name,value",
+            "1,John,100",
+            "2,Jane,200"
+        );
+        File file2 = createCsvFile("file2.csv",
+            "id,name,value",
+            "2,Jane,200",
+            "1,John,100"
+        );
+
+        // Without strict row order, files should be considered identical
+        CsvDiffEngine.DiffResult result1 = engine.compareCsvFiles(
+            file1, file2, Arrays.asList("id"), false, false, false
+        );
+        assertTrue(result1.getModifiedRows().isEmpty(), "No modifications expected");
+        assertTrue(result1.getAddedRows().isEmpty(), "No additions expected");
+        assertTrue(result1.getRemovedRows().isEmpty(), "No removals expected");
+
+        // With strict row order, rows should be marked as modified
+        CsvDiffEngine.DiffResult result2 = engine.compareCsvFiles(
+            file1, file2, Arrays.asList("id"), false, false, true
+        );
+        assertEquals(2, result2.getModifiedRows().size(), "Both rows should be marked as modified");
+    }
+
+    @Test
     void testEmptyCells() throws IOException {
         File file1 = createCsvFile("file1.csv",
             "id,name,value",

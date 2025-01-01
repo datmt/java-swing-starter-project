@@ -26,6 +26,7 @@ public class CsvDiffPanel extends JPanel {
     private final DefaultTableModel diffTableModel;
     private final JCheckBox ignoreCaseCheckbox;
     private final JCheckBox ignoreWhitespaceCheckbox;
+    private final JCheckBox strictRowOrderCheckbox;
     private final JButton compareButton;
     private final JLabel summaryLabel;
     private final JProgressBar progressBar;
@@ -78,8 +79,10 @@ public class CsvDiffPanel extends JPanel {
         JPanel optionsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         ignoreCaseCheckbox = new JCheckBox("Ignore case");
         ignoreWhitespaceCheckbox = new JCheckBox("Ignore whitespace");
+        strictRowOrderCheckbox = new JCheckBox("Strict row order");
         optionsPanel.add(ignoreCaseCheckbox);
         optionsPanel.add(ignoreWhitespaceCheckbox);
+        optionsPanel.add(strictRowOrderCheckbox);
 
         compareButton = new JButton("Compare Files");
         compareButton.setEnabled(false);
@@ -168,7 +171,8 @@ public class CsvDiffPanel extends JPanel {
                     return engine.compareCsvFiles(
                         file1, file2, selectedColumns,
                         ignoreCaseCheckbox.isSelected(),
-                        ignoreWhitespaceCheckbox.isSelected()
+                        ignoreWhitespaceCheckbox.isSelected(),
+                        strictRowOrderCheckbox.isSelected()
                     );
                 }
 

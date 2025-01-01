@@ -61,6 +61,11 @@ public class CsvDiffEngine {
 
     public DiffResult compareCsvFiles(File file1, File file2, List<String> keyColumns, 
                                     boolean ignoreCase, boolean ignoreWhitespace) throws IOException {
+        return compareCsvFiles(file1, file2, keyColumns, ignoreCase, ignoreWhitespace, false);
+    }
+
+    public DiffResult compareCsvFiles(File file1, File file2, List<String> keyColumns,
+            boolean ignoreCase, boolean ignoreWhitespace, boolean strictRowOrder) throws IOException {
         // Parse both files
         records1 = readCsv(file1);
         records2 = readCsv(file2);
@@ -92,29 +97,34 @@ public class CsvDiffEngine {
         List<RowDiff> removedRows = new ArrayList<>();
         List<RowDiff> modifiedRows = new ArrayList<>();
 
-        // Find removed and modified rows
-        for (Map.Entry<String, String[]> entry : map1.entrySet()) {
-            String key = entry.getKey();
-            String[] record1 = entry.getValue();
-            String[] record2 = map2.get(key);
+        if (strictRowOrder) {
+            compareRowsInOrder(records1, records2, headers1, headers2, keyColumns, 
+                    ignoreCase, ignoreWhitespace, addedRows, removedRows, modifiedRows);
+        } else {
+            // Find removed and modified rows
+            for (Map.Entry<String, String[]> entry : map1.entrySet()) {
+                String key = entry.getKey();
+                String[] record1 = entry.getValue();
+                String[] record2 = map2.get(key);
 
-            if (record2 == null) {
-                // Row was removed
-                removedRows.add(createRowDiff(record1, headers1, keyColumns, true));
-            } else {
-                // Compare rows for modifications
-                RowDiff diff = compareRows(record1, record2, headers1, headers2, keyColumns, ignoreCase, ignoreWhitespace);
-                if (diff != null) {
-                    modifiedRows.add(diff);
+                if (record2 == null) {
+                    // Row was removed
+                    removedRows.add(createRowDiff(record1, headers1, keyColumns, true));
+                } else {
+                    // Compare rows for modifications
+                    RowDiff diff = compareRows(record1, record2, headers1, headers2, keyColumns, ignoreCase, ignoreWhitespace);
+                    if (diff != null) {
+                        modifiedRows.add(diff);
+                    }
                 }
             }
-        }
 
-        // Find added rows
-        for (Map.Entry<String, String[]> entry : map2.entrySet()) {
-            String key = entry.getKey();
-            if (!map1.containsKey(key)) {
-                addedRows.add(createRowDiff(entry.getValue(), headers2, keyColumns, false));
+            // Find added rows
+            for (Map.Entry<String, String[]> entry : map2.entrySet()) {
+                String key = entry.getKey();
+                if (!map1.containsKey(key)) {
+                    addedRows.add(createRowDiff(entry.getValue(), headers2, keyColumns, false));
+                }
             }
         }
 
@@ -246,5 +256,29 @@ public class CsvDiffEngine {
             new HashSet<>(),                   // no modified columns for added/removed rows
             keyValues
         );
+    }
+
+    private void compareRowsInOrder(List<String[]> rows1, List<String[]> rows2,
+            String[] headers1, String[] headers2, List<String> keyColumns,
+            boolean ignoreCase, boolean ignoreWhitespace,
+            List<RowDiff> addedRows, List<RowDiff> removedRows,
+            List<RowDiff> modifiedRows) {
+        
+        int maxRows = Math.max(rows1.size(), rows2.size());
+        for (int i = 1; i < maxRows; i++) {
+            String[] row1 = i < rows1.size() ? rows1.get(i) : null;
+            String[] row2 = i < rows2.size() ? rows2.get(i) : null;
+
+            if (row1 == null) {
+                addedRows.add(createRowDiff(row2, headers2, keyColumns, false));
+            } else if (row2 == null) {
+                removedRows.add(createRowDiff(row1, headers1, keyColumns, true));
+            } else {
+                RowDiff diff = compareRows(row1, row2, headers1, headers2, keyColumns, ignoreCase, ignoreWhitespace);
+                if (diff != null) {
+                    modifiedRows.add(diff);
+                }
+            }
+        }
     }
 }
