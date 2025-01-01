@@ -9,6 +9,7 @@ import com.toolbox.tools.SpreadsheetSearchReplacePanel;
 import com.toolbox.tools.XlsToCsvPanel;
 import com.toolbox.tools.csv.CsvDiffPanel;
 import com.toolbox.license.LicensePanel;
+import com.toolbox.tools.RemoveDuplicatesPanel;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -59,6 +60,10 @@ public class ToolTreeModel extends DefaultTreeModel {
         Tool csvDiffTool = new Tool("CSV Diff", CsvDiffPanel::new, false);
         csvCategory.addChild(csvDiffTool);
 
+        // Create Remove Duplicates tool with lazy initialization
+        Tool csvRemoveDuplicatesTool = new Tool("Remove Duplicates", RemoveDuplicatesPanel::new, false);
+        csvCategory.addChild(csvRemoveDuplicatesTool);
+
         // Create Spreadsheet Search tool with lazy initialization
         Tool spreadsheetSearchTool = new Tool("Spreadsheet Search", SpreadsheetSearchPanel::new, false);
         csvCategory.addChild(spreadsheetSearchTool);
@@ -70,6 +75,10 @@ public class ToolTreeModel extends DefaultTreeModel {
         // Create XLS(X) to CSV tool with lazy initialization
         Tool xlsToCsvTool = new Tool("XLS(X) to CSV", XlsToCsvPanel::new, false);
         csvCategory.addChild(xlsToCsvTool);
+
+        // Create Remove Duplicates tool with lazy initialization
+        Tool xlsRemoveDuplicatesTool = new Tool("Remove Duplicates", RemoveDuplicatesPanel::new, false);
+        csvCategory.addChild(xlsRemoveDuplicatesTool);
         
         // Add to all tools list
         allTools.add(jsonCategory);
@@ -79,9 +88,11 @@ public class ToolTreeModel extends DefaultTreeModel {
         allTools.add(csvEditorTool);
         allTools.add(csvMergeTool);
         allTools.add(csvDiffTool);
+        allTools.add(csvRemoveDuplicatesTool);
         allTools.add(spreadsheetSearchTool);
         allTools.add(spreadsheetSearchReplaceTool);
         allTools.add(xlsToCsvTool);
+        allTools.add(xlsRemoveDuplicatesTool);
         
         // Add to tool panels map
         toolPanels.put("JSON to CSV", JsonToCsvPanel.class);
@@ -89,6 +100,7 @@ public class ToolTreeModel extends DefaultTreeModel {
         toolPanels.put("CSV Editor", CsvEditorPanel.class);
         toolPanels.put("CSV Merge", CsvMergePanel.class);
         toolPanels.put("CSV Diff", CsvDiffPanel.class);
+        toolPanels.put("Remove Duplicates", RemoveDuplicatesPanel.class);
         toolPanels.put("Spreadsheet Search", SpreadsheetSearchPanel.class);
         toolPanels.put("Search & Replace", SpreadsheetSearchReplacePanel.class);
         toolPanels.put("XLS(X) to CSV", XlsToCsvPanel.class);
