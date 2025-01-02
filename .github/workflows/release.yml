@@ -26,7 +26,7 @@ jobs:
           jpackage \
             --input target \
             --name "BC18 Spreadsheet Tools" \
-            --main-jar bc-18-spreadsheet-tools-v1.0.4-jar-with-dependencies.jar \
+            --main-jar bc-spreadsheet-jar-with-dependencies.jar \
             --main-class com.binarycarpenter.spreadsheet.MainApp \
             --type dmg \
             --icon src/main/resources/icons/app.icns \
@@ -62,7 +62,7 @@ jobs:
           jpackage \
             --input target \
             --name "BC18 Spreadsheet Tools" \
-            --main-jar bc-18-spreadsheet-tools-v1.0.4-jar-with-dependencies.jar \
+            --main-jar bc-spreadsheet-jar-with-dependencies.jar \
             --main-class com.binarycarpenter.spreadsheet.MainApp \
             --type dmg \
             --icon src/main/resources/icons/app.icns \
@@ -101,7 +101,7 @@ jobs:
           jpackage \
             --input target \
             --name "bc18-spreadsheet-tools" \
-            --main-jar bc-18-spreadsheet-tools-v1.0.4-jar-with-dependencies.jar \
+            --main-jar bc-spreadsheet-jar-with-dependencies.jar \
             --main-class com.binarycarpenter.spreadsheet.MainApp \
             --type deb \
             --linux-shortcut \
