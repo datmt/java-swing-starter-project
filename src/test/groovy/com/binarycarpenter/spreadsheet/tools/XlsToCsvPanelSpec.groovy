@@ -3,7 +3,8 @@ package com.binarycarpenter.spreadsheet.tools
 import com.binarycarpenter.spreadsheet.tools.spreadsheet.ConversionResult
 import spock.lang.Specification
 import spock.lang.TempDir
-
+import spock.lang.IgnoreIf
+import java.awt.GraphicsEnvironment
 import javax.swing.*
 
 class XlsToCsvPanelSpec extends Specification {
@@ -25,7 +26,7 @@ class XlsToCsvPanelSpec extends Specification {
             frame.pack()
         }
     }
-
+    @IgnoreIf({ GraphicsEnvironment.isHeadless() })
     def "should initialize with correct default state"() {
         expect: "initial state is correct"
         !panel.convertButton.enabled
@@ -34,6 +35,7 @@ class XlsToCsvPanelSpec extends Specification {
         !panel.selectOutputButton.enabled
     }
 
+    @IgnoreIf({ GraphicsEnvironment.isHeadless() })
     def "should handle file list operations correctly"() {
         when: "adding a file"
         SwingUtilities.invokeAndWait {
@@ -54,6 +56,7 @@ class XlsToCsvPanelSpec extends Specification {
         panel.inputFilesModel.size == 0
     }
 
+    @IgnoreIf({ GraphicsEnvironment.isHeadless() })
     def "should detect duplicate files"() {
         when: "checking non-existent file"
         def result1 = panel.isFileAlreadyAdded(testFile)
@@ -71,6 +74,7 @@ class XlsToCsvPanelSpec extends Specification {
         result2
     }
 
+    @IgnoreIf({ GraphicsEnvironment.isHeadless() })
     def "should handle results table model correctly"() {
         given: "success and failure results"
         def successResult = new ConversionResult(testFile, [new File("output1.csv"), new File("output2.csv")])
