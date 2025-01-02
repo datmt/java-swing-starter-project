@@ -27,6 +27,7 @@ public class CsvDiffPanel extends JPanel {
     private final JCheckBox ignoreCaseCheckbox;
     private final JCheckBox ignoreWhitespaceCheckbox;
     private final JCheckBox strictRowOrderCheckbox;
+    private final JCheckBox ignoreDuplicatesCheckbox;
     private final JButton compareButton;
     private final JLabel summaryLabel;
     private final JProgressBar progressBar;
@@ -76,13 +77,19 @@ public class CsvDiffPanel extends JPanel {
         add(keyColumnsPanel, "growx, wrap");
 
         // Options panel
-        JPanel optionsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel optionsPanel = new JPanel(new MigLayout("", "[]", "[]5[]5[]5[]"));
+        optionsPanel.setBorder(BorderFactory.createTitledBorder("Options"));
+
         ignoreCaseCheckbox = new JCheckBox("Ignore case");
         ignoreWhitespaceCheckbox = new JCheckBox("Ignore whitespace");
         strictRowOrderCheckbox = new JCheckBox("Strict row order");
-        optionsPanel.add(ignoreCaseCheckbox);
-        optionsPanel.add(ignoreWhitespaceCheckbox);
-        optionsPanel.add(strictRowOrderCheckbox);
+        ignoreDuplicatesCheckbox = new JCheckBox("Ignore duplicates");
+        ignoreDuplicatesCheckbox.setToolTipText("When checked, files with the same unique rows will be considered identical, even if one contains duplicates");
+
+        optionsPanel.add(ignoreCaseCheckbox, "wrap");
+        optionsPanel.add(ignoreWhitespaceCheckbox, "wrap");
+        optionsPanel.add(strictRowOrderCheckbox, "wrap");
+        optionsPanel.add(ignoreDuplicatesCheckbox, "wrap");
 
         compareButton = new JButton("Compare Files");
         compareButton.setEnabled(false);
@@ -168,11 +175,13 @@ public class CsvDiffPanel extends JPanel {
                 protected CsvDiffEngine.DiffResult doInBackground() throws Exception {
                     List<String> selectedColumns = columnList.getSelectedValuesList();
                     CsvDiffEngine engine = new CsvDiffEngine();
-                    return engine.compareCsvFiles(
-                        file1, file2, selectedColumns,
+                    return engine.compareFiles(
+                        file1, file2,
+                        columnList.getSelectedValuesList(),
                         ignoreCaseCheckbox.isSelected(),
                         ignoreWhitespaceCheckbox.isSelected(),
-                        strictRowOrderCheckbox.isSelected()
+                        strictRowOrderCheckbox.isSelected(),
+                        ignoreDuplicatesCheckbox.isSelected()
                     );
                 }
 
