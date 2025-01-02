@@ -118,8 +118,44 @@ jobs:
           name: linux-package
           path: "*.deb"
 
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build with Maven
+        run: mvn clean package
+
+      - name: Create Windows Package
+        run: |
+          jpackage \
+            --input target \
+            --name "BC18 Spreadsheet Tools" \
+            --main-jar bc-spreadsheet-jar-with-dependencies.jar \
+            --main-class com.binarycarpenter.spreadsheet.MainApp \
+            --type msi \
+            --app-version "${GITHUB_REF#refs/tags/v}" \
+            --vendor "BC18" \
+            --win-menu \
+            --win-dir-chooser \
+            --win-shortcut \
+            --description "BC18 Spreadsheet Tools - Excel and CSV processing tools"
+
+      - name: Upload Windows Package
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-package
+          path: "*.msi"
+
   create-release:
-    needs: [ build-mac-x64, build-mac-arm, build-linux ]
+    needs: [build-mac-x64, build-mac-arm, build-linux, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -134,6 +170,7 @@ jobs:
             macos-x64-package/*.dmg
             macos-arm-package/*.dmg
             linux-package/*.deb
+            windows-package/*.msi
           draft: false
           prerelease: false
           generate_release_notes: true
