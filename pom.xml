@@ -145,7 +145,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.toolbox.MainApp</mainClass>
+                            <mainClass>com.binarycarpenter.spreadsheet.MainApp</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

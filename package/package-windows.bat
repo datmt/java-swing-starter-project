@@ -12,7 +12,7 @@ jpackage ^
   --input target ^
   --name "BC18 Spreadsheet Tools" ^
   --main-jar desktop-tools-app-1.0-jar-with-dependencies.jar ^
-  --main-class com.toolbox.MainApp ^
+  --main-class com.binarycarpenter.spreadsheet.MainApp ^
   --type msi ^
   --icon src/main/resources/icons/app.ico ^
   --win-dir-chooser ^
