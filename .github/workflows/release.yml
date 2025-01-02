@@ -26,14 +26,14 @@ jobs:
           jpackage \
             --input target \
             --name "BC18 Spreadsheet Tools" \
-            --main-jar desktop-tools-app-1.0-jar-with-dependencies.jar \
-            --main-class com.toolbox.MainApp \
+            --main-jar bc-18-spreadsheet-tools-v1.0.4-jar-with-dependencies.jar \
+            --main-class com.binarycarpenter.spreadsheet.MainApp \
             --type dmg \
             --icon src/main/resources/icons/app.icns \
             --app-version "${GITHUB_REF#refs/tags/v}" \
             --vendor "BC18" \
             --copyright "Copyright 2024" \
-            --mac-package-identifier com.toolbox.desktoptools \
+            --mac-package-identifier com.binarycarpenter.spreadsheet \
             --mac-package-name "BC18-ST"
 
       - name: Upload macOS x64 Package
@@ -62,16 +62,16 @@ jobs:
           jpackage \
             --input target \
             --name "BC18 Spreadsheet Tools" \
-            --main-jar desktop-tools-app-1.0-jar-with-dependencies.jar \
-            --main-class com.toolbox.MainApp \
+            --main-jar bc-18-spreadsheet-tools-v1.0.4-jar-with-dependencies.jar \
+            --main-class com.binarycarpenter.spreadsheet.MainApp \
             --type dmg \
             --icon src/main/resources/icons/app.icns \
             --app-version "${GITHUB_REF#refs/tags/v}" \
             --vendor "BC18" \
             --copyright "Copyright 2024" \
-            --mac-package-identifier com.toolbox.desktoptools \
+            --mac-package-identifier com.binarycarpenter.spreadsheet \
             --mac-package-name "BC18-ST" \
-            --mac-package-signing-prefix com.toolbox \
+            --mac-package-signing-prefix com.binarycarpenter \
             --java-options "--enable-preview" \
             --java-options "-Dapple.awt.application.appearance=system"
 
@@ -101,8 +101,8 @@ jobs:
           jpackage \
             --input target \
             --name "bc18-spreadsheet-tools" \
-            --main-jar desktop-tools-app-1.0-jar-with-dependencies.jar \
-            --main-class com.toolbox.MainApp \
+            --main-jar bc-18-spreadsheet-tools-v1.0.4-jar-with-dependencies.jar \
+            --main-class com.binarycarpenter.spreadsheet.MainApp \
             --type deb \
             --linux-shortcut \
             --app-version "${GITHUB_REF#refs/tags/v}" \
