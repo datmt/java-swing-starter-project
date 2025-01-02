@@ -16,12 +16,12 @@ public class JsonToCsvPanel extends JPanel {
     private final JTextArea logArea;
     private final JButton convertButton;
     private final JButton openLastFileButton;
-    private List<File> selectedFiles = new ArrayList<>();
-    private File lastConvertedFile;
     private final JsonToCsvConverter converter;
     private final DefaultTableModel historyTableModel;
     private final List<ConversionRecord> conversionHistory = new ArrayList<>();
     private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+    private List<File> selectedFiles = new ArrayList<>();
+    private File lastConvertedFile;
 
     public JsonToCsvPanel() {
         converter = new JsonToCsvConverter();
@@ -38,7 +38,7 @@ public class JsonToCsvPanel extends JPanel {
 
         // Center panel with buttons and history table
         JPanel centerPanel = new JPanel(new BorderLayout(0, 10));
-        
+
         // Button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         buttonPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
@@ -84,7 +84,7 @@ public class JsonToCsvPanel extends JPanel {
         historyTable.getColumnModel().getColumn(3).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
-                    boolean isSelected, boolean hasFocus, int row, int column) {
+                                                           boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 if (value instanceof ConversionRecord.ConversionStatus) {
                     setText(value.toString());
@@ -97,7 +97,7 @@ public class JsonToCsvPanel extends JPanel {
         historyTable.getColumnModel().getColumn(4).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
-                    boolean isSelected, boolean hasFocus, int row, int column) {
+                                                           boolean isSelected, boolean hasFocus, int row, int column) {
                 JButton button = new JButton("Open");
                 button.setEnabled(value instanceof Boolean && (Boolean) value);
                 return button;
@@ -129,13 +129,13 @@ public class JsonToCsvPanel extends JPanel {
         // Bottom panel with log area
         JPanel logPanel = new JPanel(new BorderLayout());
         logPanel.setBorder(BorderFactory.createTitledBorder("Conversion Log"));
-        
+
         logArea = new JTextArea(6, 50);
         logArea.setEditable(false);
         logArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         logArea.setBackground(new Color(245, 245, 245));
         logArea.setBorder(new EmptyBorder(5, 5, 5, 5));
-        
+
         JScrollPane scrollPane = new JScrollPane(logArea);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         logPanel.add(scrollPane, BorderLayout.CENTER);
@@ -170,6 +170,7 @@ public class JsonToCsvPanel extends JPanel {
             public boolean accept(File f) {
                 return f.isDirectory() || f.getName().toLowerCase().endsWith(".json");
             }
+
             public String getDescription() {
                 return "JSON Files (*.json)";
             }
@@ -197,7 +198,7 @@ public class JsonToCsvPanel extends JPanel {
                     ConversionRecord record = new ConversionRecord(jsonFile);
                     conversionHistory.add(record);
                     publish(record);
-                    
+
                     try {
                         lastConvertedFile = converter.convertJsonToCsv(jsonFile);
                         record.setCompleted(lastConvertedFile);
@@ -224,14 +225,14 @@ public class JsonToCsvPanel extends JPanel {
                 convertButton.setEnabled(true);
                 openLastFileButton.setEnabled(lastConvertedFile != null);
                 updateHistoryTable();
-                
+
                 if (lastConvertedFile != null) {
                     int option = JOptionPane.showConfirmDialog(
-                        JsonToCsvPanel.this,
-                        "Conversion completed. Would you like to open the last converted file?",
-                        "Conversion Complete",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.INFORMATION_MESSAGE
+                            JsonToCsvPanel.this,
+                            "Conversion completed. Would you like to open the last converted file?",
+                            "Conversion Complete",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.INFORMATION_MESSAGE
                     );
                     if (option == JOptionPane.YES_OPTION) {
                         openLastConvertedFile();
@@ -254,10 +255,10 @@ public class JsonToCsvPanel extends JPanel {
                 Desktop.getDesktop().open(file);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(
-                    this,
-                    "Error opening file: " + ex.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
+                        this,
+                        "Error opening file: " + ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE
                 );
             }
         }

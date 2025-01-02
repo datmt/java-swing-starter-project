@@ -18,9 +18,9 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RemoveDuplicatesPanelTest {
-    private RemoveDuplicatesPanel panel;
     @TempDir
     Path tempDir;
+    private RemoveDuplicatesPanel panel;
 
     @BeforeEach
     void setUp() {
@@ -89,7 +89,7 @@ class RemoveDuplicatesPanelTest {
             createRow(sheet, 2, "Jane", "30", "London");
             createRow(sheet, 3, "John", "25", "New York"); // Duplicate
             createRow(sheet, 4, "Bob", "35", "Paris");
-            
+
             try (var fileOut = new java.io.FileOutputStream(inputFile)) {
                 workbook.write(fileOut);
             }
@@ -130,12 +130,12 @@ class RemoveDuplicatesPanelTest {
             List<String[]> rows = reader.readAll();
             assertEquals(2, rows.size()); // Header + 1 unique row
             assertArrayEquals(
-                new String[]{"Code", "Date", "Value", "Status", "Type", "Unit", "Version", "Collection", "Variable", "Measure", "Industry", "State", "Empty1", "Empty2"},
-                rows.get(0)
+                    new String[]{"Code", "Date", "Value", "Status", "Type", "Unit", "Version", "Collection", "Variable", "Measure", "Industry", "State", "Empty1", "Empty2"},
+                    rows.get(0)
             );
             assertArrayEquals(
-                new String[]{"BDCQ.SEA1AA", "2013.09", "81471", "", "F", "Number", "0", "Business Data Collection - BDC", "Industry by employment variable", "Filled jobs", "Agriculture, Forestry and Fishing", "Actual", "", ""},
-                rows.get(1)
+                    new String[]{"BDCQ.SEA1AA", "2013.09", "81471", "", "F", "Number", "0", "Business Data Collection - BDC", "Industry by employment variable", "Filled jobs", "Agriculture, Forestry and Fishing", "Actual", "", ""},
+                    rows.get(1)
             );
         }
     }

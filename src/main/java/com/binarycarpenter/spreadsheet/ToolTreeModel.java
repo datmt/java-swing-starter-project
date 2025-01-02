@@ -1,14 +1,7 @@
 package com.binarycarpenter.spreadsheet;
 
-import com.binarycarpenter.spreadsheet.tools.CsvMappingPanel;
-import com.binarycarpenter.spreadsheet.tools.CsvEditorPanel;
-import com.binarycarpenter.spreadsheet.tools.JsonToCsvPanel;
-import com.binarycarpenter.spreadsheet.tools.CsvMergePanel;
-import com.binarycarpenter.spreadsheet.tools.SpreadsheetSearchPanel;
-import com.binarycarpenter.spreadsheet.tools.SpreadsheetSearchReplacePanel;
-import com.binarycarpenter.spreadsheet.tools.XlsToCsvPanel;
+import com.binarycarpenter.spreadsheet.tools.*;
 import com.binarycarpenter.spreadsheet.tools.csv.CsvDiffPanel;
-import com.binarycarpenter.spreadsheet.tools.RemoveDuplicatesPanel;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -35,14 +28,14 @@ public class ToolTreeModel extends DefaultTreeModel {
     private void initializeTools() {
         // Create JSON category
         Tool jsonCategory = new Tool("JSON Tools", new JPanel(), true);
-        
+
         // Create JSON to CSV tool with its panel
         Tool jsonToCsvTool = new Tool("JSON to CSV", JsonToCsvPanel::new, false);
         jsonCategory.addChild(jsonToCsvTool);
 
         // Create CSV/Spreadsheet category
         Tool csvCategory = new Tool("CSV/Spreadsheet Tools", new JPanel(), true);
-        
+
         // Create CSV Mapping tool with its panel
         Tool csvMappingTool = new Tool("CSV Mapping", new CsvMappingPanel());
         csvCategory.addChild(csvMappingTool);
@@ -78,7 +71,7 @@ public class ToolTreeModel extends DefaultTreeModel {
         // Create Remove Duplicates tool with lazy initialization
         Tool xlsRemoveDuplicatesTool = new Tool("Remove Duplicates", RemoveDuplicatesPanel::new, false);
         csvCategory.addChild(xlsRemoveDuplicatesTool);
-        
+
         // Add to all tools list
         allTools.add(jsonCategory);
         allTools.add(jsonToCsvTool);
@@ -92,7 +85,7 @@ public class ToolTreeModel extends DefaultTreeModel {
         allTools.add(spreadsheetSearchReplaceTool);
         allTools.add(xlsToCsvTool);
         allTools.add(xlsRemoveDuplicatesTool);
-        
+
         // Add to tool panels map
         toolPanels.put("JSON to CSV", JsonToCsvPanel.class);
         toolPanels.put("CSV Mapping", CsvMappingPanel.class);
@@ -103,51 +96,51 @@ public class ToolTreeModel extends DefaultTreeModel {
         toolPanels.put("Spreadsheet Search", SpreadsheetSearchPanel.class);
         toolPanels.put("Search & Replace", SpreadsheetSearchReplacePanel.class);
         toolPanels.put("XLS(X) to CSV", XlsToCsvPanel.class);
-        
+
         // Build tree structure
         buildTreeNodes();
     }
 
     private void buildTreeNodes() {
         rootNode.removeAllChildren();
-        
+
         for (Tool tool : allTools) {
             if (tool.isCategory()) {
                 DefaultMutableTreeNode categoryNode = new DefaultMutableTreeNode(tool);
                 rootNode.add(categoryNode);
-                
+
                 for (Tool child : tool.getChildren()) {
                     categoryNode.add(new DefaultMutableTreeNode(child));
                 }
             }
         }
-        
+
         reload();
     }
 
     public void filterTools(String searchText) {
         rootNode.removeAllChildren();
         searchText = searchText.toLowerCase();
-        
+
         for (Tool tool : allTools) {
             if (tool.isCategory()) {
                 DefaultMutableTreeNode categoryNode = new DefaultMutableTreeNode(tool);
                 boolean addCategory = tool.getName().toLowerCase().contains(searchText);
                 boolean hasMatchingChildren = false;
-                
+
                 for (Tool child : tool.getChildren()) {
                     if (child.getName().toLowerCase().contains(searchText)) {
                         categoryNode.add(new DefaultMutableTreeNode(child));
                         hasMatchingChildren = true;
                     }
                 }
-                
+
                 if (addCategory || hasMatchingChildren) {
                     rootNode.add(categoryNode);
                 }
             }
         }
-        
+
         reload();
     }
 
@@ -162,7 +155,7 @@ public class ToolTreeModel extends DefaultTreeModel {
 
     public Class<?> getToolPanelClass(TreePath path) {
         if (path == null) return null;
-        
+
         Object lastComponent = path.getLastPathComponent();
         if (lastComponent instanceof DefaultMutableTreeNode) {
             DefaultMutableTreeNode node = (DefaultMutableTreeNode) lastComponent;

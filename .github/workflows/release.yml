@@ -10,17 +10,17 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
-          
+
       - name: Build with Maven
         run: mvn clean package
-        
+
       - name: Create macOS x64 Package
         run: |
           jpackage \
@@ -35,7 +35,7 @@ jobs:
             --copyright "Copyright 2024" \
             --mac-package-identifier com.toolbox.desktoptools \
             --mac-package-name "BC18-ST"
-            
+
       - name: Upload macOS x64 Package
         uses: actions/upload-artifact@v3
         with:
@@ -46,17 +46,17 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
-          
+
       - name: Build with Maven
         run: mvn clean package
-        
+
       - name: Create macOS ARM Package
         run: |
           jpackage \
@@ -74,7 +74,7 @@ jobs:
             --mac-package-signing-prefix com.toolbox \
             --java-options "--enable-preview" \
             --java-options "-Dapple.awt.application.appearance=system"
-            
+
       - name: Upload macOS ARM Package
         uses: actions/upload-artifact@v3
         with:
@@ -85,17 +85,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
-          
+
       - name: Build with Maven
         run: mvn clean package
-        
+
       - name: Create Linux Package
         run: |
           jpackage \
@@ -111,7 +111,7 @@ jobs:
             --linux-menu-group "Office" \
             --linux-app-category "Office" \
             --description "BC18 Spreadsheet Tools - Excel and CSV processing tools"
-            
+
       - name: Upload Linux Package
         uses: actions/upload-artifact@v3
         with:
@@ -119,14 +119,14 @@ jobs:
           path: "*.deb"
 
   create-release:
-    needs: [build-mac-x64, build-mac-arm, build-linux]
+    needs: [ build-mac-x64, build-mac-arm, build-linux ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v3
-        
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:

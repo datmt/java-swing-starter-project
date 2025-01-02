@@ -1,9 +1,9 @@
 package com.binarycarpenter.spreadsheet.utils;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.io.InputStream;
-import javax.imageio.ImageIO;
 
 public class Icons {
     public static final Icon OPEN = createIcon("folder-open", 16);
@@ -22,14 +22,14 @@ public class Icons {
                 System.err.println("Could not find icon: " + iconPath);
                 return createEmptyIcon(name, size);
             }
-            
+
             try {
                 Image image = ImageIO.read(is);
                 if (image == null) {
                     System.err.println("Could not read icon image: " + iconPath);
                     return createEmptyIcon(name, size);
                 }
-                
+
                 if (image.getWidth(null) != size) {
                     image = image.getScaledInstance(size, size, Image.SCALE_SMOOTH);
                 }
@@ -64,11 +64,11 @@ public class Icons {
         public void paintIcon(Component c, Graphics g, int x, int y) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            
+
             // Draw border
             g2.setColor(Color.GRAY);
             g2.drawRect(x, y, size - 1, size - 1);
-            
+
             // Draw first character of icon name
             if (name != null && !name.isEmpty()) {
                 g2.setFont(new Font(Font.SANS_SERIF, Font.BOLD, size - 4));
@@ -78,7 +78,7 @@ public class Icons {
                 int textY = y + (size + fm.getAscent() - fm.getDescent()) / 2;
                 g2.drawString(text, textX, textY);
             }
-            
+
             g2.dispose();
         }
 

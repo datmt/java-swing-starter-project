@@ -12,8 +12,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -171,7 +171,7 @@ public class RemoveDuplicatesPanel extends JPanel {
     void removeDuplicatesFromCsv(File input, File output, int selectedColumn) throws IOException, CsvException {
         try (CSVReader reader = new CSVReader(new FileReader(input));
              CSVWriter writer = new CSVWriter(new FileWriter(output))) {
-            
+
             List<String[]> allRows = reader.readAll();
             if (allRows.isEmpty()) {
                 return;
@@ -186,7 +186,7 @@ public class RemoveDuplicatesPanel extends JPanel {
 
             for (int i = 1; i < allRows.size(); i++) {
                 String[] row = allRows.get(i);
-                String key = selectedColumn == -1 ? 
+                String key = selectedColumn == -1 ?
                         String.join(",", row) : // Entire row
                         row[selectedColumn];    // Selected column
 
@@ -202,7 +202,7 @@ public class RemoveDuplicatesPanel extends JPanel {
     void removeDuplicatesFromExcel(File input, File output, int selectedColumn) throws IOException {
         try (Workbook inputWorkbook = WorkbookFactory.create(input);
              Workbook outputWorkbook = new XSSFWorkbook()) {
-            
+
             Sheet inputSheet = inputWorkbook.getSheetAt(0);
             Sheet outputSheet = outputWorkbook.createSheet();
 
@@ -248,11 +248,16 @@ public class RemoveDuplicatesPanel extends JPanel {
     private String getCellValue(Cell cell) {
         if (cell == null) return "";
         switch (cell.getCellType()) {
-            case STRING: return cell.getStringCellValue();
-            case NUMERIC: return String.valueOf(cell.getNumericCellValue());
-            case BOOLEAN: return String.valueOf(cell.getBooleanCellValue());
-            case FORMULA: return cell.getCellFormula();
-            default: return "";
+            case STRING:
+                return cell.getStringCellValue();
+            case NUMERIC:
+                return String.valueOf(cell.getNumericCellValue());
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            case FORMULA:
+                return cell.getCellFormula();
+            default:
+                return "";
         }
     }
 

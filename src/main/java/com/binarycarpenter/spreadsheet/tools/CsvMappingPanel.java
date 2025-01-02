@@ -21,7 +21,7 @@ public class CsvMappingPanel extends JPanel {
     private JTextField defaultValueField;
     private JTextArea logArea;
     private JButton performMappingButton;
-    
+
     public CsvMappingPanel() {
         setLayout(new BorderLayout(10, 10));
         setBorder(new EmptyBorder(20, 20, 20, 20));
@@ -109,6 +109,7 @@ public class CsvMappingPanel extends JPanel {
             public boolean accept(File f) {
                 return f.isDirectory() || f.getName().toLowerCase().endsWith(".csv");
             }
+
             public String getDescription() {
                 return "CSV Files (*.csv)";
             }
@@ -129,6 +130,7 @@ public class CsvMappingPanel extends JPanel {
             public boolean accept(File f) {
                 return f.isDirectory() || f.getName().toLowerCase().endsWith(".csv");
             }
+
             public String getDescription() {
                 return "CSV Files (*.csv)";
             }
@@ -168,23 +170,23 @@ public class CsvMappingPanel extends JPanel {
     private void checkEnableMapping() {
         boolean filesSelected = sourceFile != null && targetFile != null;
         boolean columnsSelected = sourceLookupColumnCombo.getSelectedItem() != null &&
-                                sourceValueColumnCombo.getSelectedItem() != null &&
-                                targetLookupColumnCombo.getSelectedItem() != null &&
-                                targetOutputColumnCombo.getSelectedItem() != null;
-        
+                sourceValueColumnCombo.getSelectedItem() != null &&
+                targetLookupColumnCombo.getSelectedItem() != null &&
+                targetOutputColumnCombo.getSelectedItem() != null;
+
         performMappingButton.setEnabled(filesSelected && columnsSelected);
     }
 
     private void performMapping() {
         try {
             CsvMapper mapper = new CsvMapper(
-                sourceFile,
-                targetFile,
-                sourceLookupColumnCombo.getSelectedIndex(),
-                sourceValueColumnCombo.getSelectedIndex(),
-                targetLookupColumnCombo.getSelectedIndex(),
-                targetOutputColumnCombo.getSelectedIndex(),
-                defaultValueField.getText()
+                    sourceFile,
+                    targetFile,
+                    sourceLookupColumnCombo.getSelectedIndex(),
+                    sourceValueColumnCombo.getSelectedIndex(),
+                    targetLookupColumnCombo.getSelectedIndex(),
+                    targetOutputColumnCombo.getSelectedIndex(),
+                    defaultValueField.getText()
             );
 
             logArea.append("Starting mapping process...\n");
@@ -193,11 +195,11 @@ public class CsvMappingPanel extends JPanel {
             logArea.append("Output file created: " + outputFile.getName() + "\n");
 
             int option = JOptionPane.showConfirmDialog(
-                this,
-                "Mapping completed successfully! Would you like to open the output file?",
-                "Mapping Complete",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.INFORMATION_MESSAGE
+                    this,
+                    "Mapping completed successfully! Would you like to open the output file?",
+                    "Mapping Complete",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.INFORMATION_MESSAGE
             );
 
             if (option == JOptionPane.YES_OPTION) {
@@ -207,10 +209,10 @@ public class CsvMappingPanel extends JPanel {
         } catch (Exception e) {
             logArea.append("Error during mapping: " + e.getMessage() + "\n");
             JOptionPane.showMessageDialog(
-                this,
-                "Error during mapping: " + e.getMessage(),
-                "Mapping Error",
-                JOptionPane.ERROR_MESSAGE
+                    this,
+                    "Error during mapping: " + e.getMessage(),
+                    "Mapping Error",
+                    JOptionPane.ERROR_MESSAGE
             );
         }
     }

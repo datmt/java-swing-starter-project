@@ -1,8 +1,8 @@
 package com.binarycarpenter.spreadsheet;
 
-import com.formdev.flatlaf.FlatLightLaf;
 import com.binarycarpenter.spreadsheet.license.LicenseManager;
 import com.binarycarpenter.spreadsheet.license.LicensePanel;
+import com.formdev.flatlaf.FlatLightLaf;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
@@ -29,11 +29,11 @@ public class MainApp extends JFrame {
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         JMenu settingsMenu = new JMenu("Settings");
-        
+
         JMenuItem activateMenuItem = new JMenuItem("License Activation");
         activateMenuItem.addActionListener(e -> showLicenseDialog());
         settingsMenu.add(activateMenuItem);
-        
+
         menuBar.add(fileMenu);
         menuBar.add(settingsMenu);
         setJMenuBar(menuBar);
@@ -43,13 +43,13 @@ public class MainApp extends JFrame {
         searchField = new JTextField(20);
         treeModel = new ToolTreeModel();
         toolTree = new JTree(treeModel);
-        
+
         // Setup UI
         setupUI();
-        
+
         // Add listeners
         setupListeners();
-        
+
         // Validate license on startup
         SwingWorker<LicenseManager.ActivationResult, Void> worker = new SwingWorker<>() {
             @Override
@@ -64,9 +64,9 @@ public class MainApp extends JFrame {
                     if (!result.isSuccess()) {
                         SwingUtilities.invokeLater(() -> {
                             JOptionPane.showMessageDialog(MainApp.this,
-                                "License validation failed: " + result.getError() + "\nPlease reactivate your license.",
-                                "License Invalid",
-                                JOptionPane.WARNING_MESSAGE);
+                                    "License validation failed: " + result.getError() + "\nPlease reactivate your license.",
+                                    "License Invalid",
+                                    JOptionPane.WARNING_MESSAGE);
                             showLicenseDialog();
                         });
                     }
@@ -78,26 +78,38 @@ public class MainApp extends JFrame {
         worker.execute();
     }
 
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                FlatLightLaf.setup();
+                UIManager.setLookAndFeel(new FlatLightLaf());
+            } catch (Exception ex) {
+                System.err.println("Failed to initialize FlatLaf");
+            }
+            new MainApp().setVisible(true);
+        });
+    }
+
     private void setupUI() {
         setLayout(new MigLayout("fill"));
-        
+
         // Left panel with search and tree
         JPanel leftPanel = new JPanel(new MigLayout("fillx, wrap"));
         leftPanel.add(new JLabel("Search:"), "split 2");
         leftPanel.add(searchField, "growx, wrap");
-        
+
         // Style the tree
         toolTree.setRootVisible(false);
         toolTree.setShowsRootHandles(true);
-        
+
         JScrollPane treeScrollPane = new JScrollPane(toolTree);
         leftPanel.add(treeScrollPane, "grow");
-        
+
         // Right content panel
         rightPanel = new JPanel(new MigLayout("fill"));
         rightPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         rightPanel.add(contentPanel, "grow");
-        
+
         // Add components to frame
         add(leftPanel, "w 250!, grow y");
         add(rightPanel, "grow");
@@ -140,10 +152,10 @@ public class MainApp extends JFrame {
             // Check license activation before allowing access to tools
             if (!LicenseManager.isActivated()) {
                 JOptionPane.showMessageDialog(this,
-                    "Please activate your license to use this feature.",
-                    "License Required",
-                    JOptionPane.WARNING_MESSAGE);
-                
+                        "Please activate your license to use this feature.",
+                        "License Required",
+                        JOptionPane.WARNING_MESSAGE);
+
                 showLicenseDialog();
                 return;
             }
@@ -154,7 +166,7 @@ public class MainApp extends JFrame {
     private void filterTools() {
         String searchText = searchField.getText();
         treeModel.filterTools(searchText);
-        
+
         // Expand all nodes after filtering
         for (int i = 0; i < toolTree.getRowCount(); i++) {
             toolTree.expandRow(i);
@@ -164,7 +176,7 @@ public class MainApp extends JFrame {
     private void showTool(Tool tool) {
         contentPanel.removeAll();
         contentPanel.add(tool.getContent(), "grow");
-        
+
         // Revalidate and repaint both panels
         contentPanel.revalidate();
         contentPanel.repaint();
@@ -179,17 +191,5 @@ public class MainApp extends JFrame {
         dialog.pack();
         dialog.setLocationRelativeTo(this);
         dialog.setVisible(true);
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                FlatLightLaf.setup();
-                UIManager.setLookAndFeel(new FlatLightLaf());
-            } catch (Exception ex) {
-                System.err.println("Failed to initialize FlatLaf");
-            }
-            new MainApp().setVisible(true);
-        });
     }
 }

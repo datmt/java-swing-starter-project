@@ -4,9 +4,9 @@ import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvException;
 import net.miginfocom.swing.MigLayout;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -15,14 +15,18 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.*;
-import java.nio.file.*;
-import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
 
 public class SpreadsheetSearchReplacePanel extends JPanel {
+    private static final String[] COLUMN_NAMES = {
+            "File", "Sheet/Tab", "Row", "Column", "Current Content", "Will Replace With"
+    };
     // File selection components
     private DefaultListModel<String> pathListModel;
     private JList<String> pathList;
@@ -30,7 +34,6 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
     private JButton addDirectoryButton;
     private JButton addFilesButton;
     private JButton removeButton;
-
     // Search/Replace components
     private JTextField searchField;
     private JTextField replaceField;
@@ -39,17 +42,12 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
     private JCheckBox regexCheckBox;
     private JButton previewButton;
     private JButton executeButton;
-
     // Results table
     private JTable resultsTable;
     private DefaultTableModel tableModel;
     private JProgressBar progressBar;
     private JLabel statusLabel;
     private SwingWorker<Void, SearchReplaceResult> currentOperation;
-
-    private static final String[] COLUMN_NAMES = {
-        "File", "Sheet/Tab", "Row", "Column", "Current Content", "Will Replace With"
-    };
 
     public SpreadsheetSearchReplacePanel() {
         setLayout(new MigLayout("fill, insets 5", "[grow]", "[][]10[]5[grow][]"));
@@ -169,11 +167,19 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
         // Search field validation
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
-            public void insertUpdate(DocumentEvent e) { validateSearch(); }
+            public void insertUpdate(DocumentEvent e) {
+                validateSearch();
+            }
+
             @Override
-            public void removeUpdate(DocumentEvent e) { validateSearch(); }
+            public void removeUpdate(DocumentEvent e) {
+                validateSearch();
+            }
+
             @Override
-            public void changedUpdate(DocumentEvent e) { validateSearch(); }
+            public void changedUpdate(DocumentEvent e) {
+                validateSearch();
+            }
         });
     }
 
@@ -198,7 +204,7 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         chooser.setMultiSelectionEnabled(false);
-        
+
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File dir = chooser.getSelectedFile();
             addPath(dir.toPath());
@@ -209,11 +215,11 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
         chooser.setMultiSelectionEnabled(true);
-        
+
         FileNameExtensionFilter filter = new FileNameExtensionFilter(
-            "Spreadsheet files (*.csv, *.xlsx, *.xls)", "csv", "xlsx", "xls");
+                "Spreadsheet files (*.csv, *.xlsx, *.xls)", "csv", "xlsx", "xls");
         chooser.setFileFilter(filter);
-        
+
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             for (File file : chooser.getSelectedFiles()) {
                 addPath(file.toPath());
@@ -258,12 +264,12 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
                 SwingUtilities.invokeLater(() -> {
                     for (SearchReplaceResult result : results) {
                         tableModel.addRow(new Object[]{
-                            result.filePath,
-                            result.sheet,
-                            result.row + 1, // Convert to 1-based for display
-                            result.column + 1,
-                            result.currentContent,
-                            result.replacement
+                                result.filePath,
+                                result.sheet,
+                                result.row + 1, // Convert to 1-based for display
+                                result.column + 1,
+                                result.currentContent,
+                                result.replacement
                         });
                     }
                 });
@@ -281,11 +287,11 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
 
     private void executeReplace() {
         int option = JOptionPane.showConfirmDialog(
-            this,
-            String.format("Are you sure you want to replace %d occurrences?", tableModel.getRowCount()),
-            "Confirm Replace",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.WARNING_MESSAGE
+                this,
+                String.format("Are you sure you want to replace %d occurrences?", tableModel.getRowCount()),
+                "Confirm Replace",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
         );
 
         if (option == JOptionPane.YES_OPTION) {
@@ -321,8 +327,8 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
             if (Files.isDirectory(path)) {
                 try (Stream<Path> walk = Files.walk(path)) {
                     walk.filter(Files::isRegularFile)
-                        .filter(this::isSpreadsheetFile)
-                        .forEach(file -> processFile(file, previewOnly));
+                            .filter(this::isSpreadsheetFile)
+                            .forEach(file -> processFile(file, previewOnly));
                 }
             } else if (Files.isRegularFile(path) && isSpreadsheetFile(path)) {
                 processFile(path, previewOnly);
@@ -366,10 +372,10 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
             for (int j = 0; j < row.length; j++) {
                 String cell = row[j];
                 String replacement = matchAndReplace(cell);
-                
+
                 if (replacement != null) {
                     changes.add(new SearchReplaceResult(
-                        file.toString(), "Sheet1", i, j, cell, replacement
+                            file.toString(), "Sheet1", i, j, cell, replacement
                     ));
                     if (!previewOnly) {
                         row[j] = replacement;
@@ -389,12 +395,12 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
             SwingUtilities.invokeLater(() -> {
                 for (SearchReplaceResult result : changes) {
                     tableModel.addRow(new Object[]{
-                        result.filePath,
-                        result.sheet,
-                        result.row + 1,
-                        result.column + 1,
-                        result.currentContent,
-                        result.replacement
+                            result.filePath,
+                            result.sheet,
+                            result.row + 1,
+                            result.column + 1,
+                            result.currentContent,
+                            result.replacement
                     });
                 }
             });
@@ -404,30 +410,30 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
     private void processExcelFile(Path file, boolean previewOnly) throws IOException {
         try (FileInputStream fis = new FileInputStream(file.toFile());
              Workbook workbook = file.toString().toLowerCase().endsWith(".xlsx") ?
-                                new XSSFWorkbook(fis) : new HSSFWorkbook(fis)) {
-            
+                     new XSSFWorkbook(fis) : new HSSFWorkbook(fis)) {
+
             boolean modified = false;
             List<SearchReplaceResult> changes = new ArrayList<>();
 
             for (int sheetIndex = 0; sheetIndex < workbook.getNumberOfSheets(); sheetIndex++) {
                 Sheet sheet = workbook.getSheetAt(sheetIndex);
-                
+
                 for (Row row : sheet) {
                     for (Cell cell : row) {
                         if (cell.getCellType() == CellType.STRING) {
                             String cellValue = cell.getStringCellValue();
                             String replacement = matchAndReplace(cellValue);
-                            
+
                             if (replacement != null) {
                                 changes.add(new SearchReplaceResult(
-                                    file.toString(),
-                                    sheet.getSheetName(),
-                                    row.getRowNum(),
-                                    cell.getColumnIndex(),
-                                    cellValue,
-                                    replacement
+                                        file.toString(),
+                                        sheet.getSheetName(),
+                                        row.getRowNum(),
+                                        cell.getColumnIndex(),
+                                        cellValue,
+                                        replacement
                                 ));
-                                
+
                                 if (!previewOnly) {
                                     cell.setCellValue(replacement);
                                     modified = true;
@@ -448,12 +454,12 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
                 SwingUtilities.invokeLater(() -> {
                     for (SearchReplaceResult result : changes) {
                         tableModel.addRow(new Object[]{
-                            result.filePath,
-                            result.sheet,
-                            result.row + 1,
-                            result.column + 1,
-                            result.currentContent,
-                            result.replacement
+                                result.filePath,
+                                result.sheet,
+                                result.row + 1,
+                                result.column + 1,
+                                result.currentContent,
+                                result.replacement
                         });
                     }
                 });
@@ -466,13 +472,13 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
 
         String searchText = searchField.getText();
         String replaceText = replaceField.getText();
-        
+
         if (regexCheckBox.isSelected()) {
             try {
-                Pattern pattern = matchCaseCheckBox.isSelected() ? 
-                    Pattern.compile(searchText) :
-                    Pattern.compile(searchText, Pattern.CASE_INSENSITIVE);
-                
+                Pattern pattern = matchCaseCheckBox.isSelected() ?
+                        Pattern.compile(searchText) :
+                        Pattern.compile(searchText, Pattern.CASE_INSENSITIVE);
+
                 if (pattern.matcher(text).find()) {
                     return text.replaceAll(searchText, replaceText);
                 }
@@ -480,28 +486,28 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
                 return null;
             }
         } else if (exactMatchCheckBox.isSelected()) {
-            if (matchCaseCheckBox.isSelected() ? 
-                text.equals(searchText) : 
-                text.equalsIgnoreCase(searchText)) {
+            if (matchCaseCheckBox.isSelected() ?
+                    text.equals(searchText) :
+                    text.equalsIgnoreCase(searchText)) {
                 return replaceText;
             }
         } else {
-            String textToSearch = matchCaseCheckBox.isSelected() ? 
-                text : text.toLowerCase();
-            searchText = matchCaseCheckBox.isSelected() ? 
-                searchText : searchText.toLowerCase();
-            
+            String textToSearch = matchCaseCheckBox.isSelected() ?
+                    text : text.toLowerCase();
+            searchText = matchCaseCheckBox.isSelected() ?
+                    searchText : searchText.toLowerCase();
+
             if (textToSearch.contains(searchText)) {
                 return text.replace(
-                    text.substring(
-                        textToSearch.indexOf(searchText),
-                        textToSearch.indexOf(searchText) + searchText.length()
-                    ),
-                    replaceText
+                        text.substring(
+                                textToSearch.indexOf(searchText),
+                                textToSearch.indexOf(searchText) + searchText.length()
+                        ),
+                        replaceText
                 );
             }
         }
-        
+
         return null;
     }
 
@@ -513,8 +519,8 @@ public class SpreadsheetSearchReplacePanel extends JPanel {
         final String currentContent;
         final String replacement;
 
-        SearchReplaceResult(String filePath, String sheet, int row, int column, 
-                          String currentContent, String replacement) {
+        SearchReplaceResult(String filePath, String sheet, int row, int column,
+                            String currentContent, String replacement) {
             this.filePath = filePath;
             this.sheet = sheet;
             this.row = row;

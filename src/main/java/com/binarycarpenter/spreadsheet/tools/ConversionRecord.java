@@ -10,33 +10,6 @@ public class ConversionRecord {
     private ConversionStatus status;
     private String errorMessage;
 
-    public enum ConversionStatus {
-        IN_PROGRESS("Converting...", "⏳"),
-        COMPLETED("Completed", "✓"),
-        FAILED("Failed", "❌");
-
-        private final String label;
-        private final String icon;
-
-        ConversionStatus(String label, String icon) {
-            this.label = label;
-            this.icon = icon;
-        }
-
-        public String getLabel() {
-            return label;
-        }
-
-        public String getIcon() {
-            return icon;
-        }
-
-        @Override
-        public String toString() {
-            return icon + " " + label;
-        }
-    }
-
     public ConversionRecord(File sourceFile) {
         this.sourceFile = sourceFile;
         this.timestamp = LocalDateTime.now();
@@ -73,5 +46,32 @@ public class ConversionRecord {
 
     public String getErrorMessage() {
         return errorMessage;
+    }
+
+    public enum ConversionStatus {
+        IN_PROGRESS("Converting...", "⏳"),
+        COMPLETED("Completed", "✓"),
+        FAILED("Failed", "❌");
+
+        private final String label;
+        private final String icon;
+
+        ConversionStatus(String label, String icon) {
+            this.label = label;
+            this.icon = icon;
+        }
+
+        public String getLabel() {
+            return label;
+        }
+
+        public String getIcon() {
+            return icon;
+        }
+
+        @Override
+        public String toString() {
+            return icon + " " + label;
+        }
     }
 }

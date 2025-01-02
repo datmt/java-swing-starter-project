@@ -1,7 +1,6 @@
 package com.binarycarpenter.spreadsheet.license;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.NetworkInterface;
@@ -55,6 +54,99 @@ public class LicenseManager {
         prefs.remove(PREF_EMAIL);
         prefs.remove(PREF_EXPIRATION_DATE);
         prefs.remove(PREF_LICENSE_TYPE);
+    }
+
+    public static ActivationResult validateLicense() {
+        String savedKey = getSavedLicenseKey();
+        if (savedKey.isEmpty()) {
+            return new ActivationResult(false, null, "No license key found");
+        }
+        return activate(savedKey);
+    }
+
+    public static ActivationResult activate(String licenseKey) {
+        try {
+            String machineId = getMachineId();
+            ActivationRequest request = new ActivationRequest(licenseKey, machineId, VERSION_NUMBER);
+
+            String requestBody = objectMapper.writeValueAsString(request);
+            System.out.println("Sending activation request: " + requestBody);
+
+            HttpRequest httpRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(ACTIVATION_URL))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .timeout(Duration.ofSeconds(10))
+                    .build();
+
+            HttpResponse<String> response = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            String responseBody = response.body();
+            System.out.println("Received response: " + responseBody);
+
+            if (response.statusCode() == 200) {
+                try {
+                    ServerResponse serverResponse = objectMapper.readValue(responseBody, ServerResponse.class);
+                    if (serverResponse.isResult()) {
+                        // Save all license information
+                        prefs.put(PREF_LICENSE_KEY, licenseKey);
+                        prefs.putBoolean(PREF_ACTIVATION_STATUS, true);
+                        prefs.put(PREF_EMAIL, serverResponse.getEmail() != null ? serverResponse.getEmail() : "");
+                        prefs.put(PREF_EXPIRATION_DATE, serverResponse.getExpirationDate());
+                        prefs.put(PREF_LICENSE_TYPE,
+                                serverResponse.getLicenseType() != null ? serverResponse.getLicenseType() : "");
+
+                        return new ActivationResult(true,
+                                serverResponse.getMessage(),
+                                null);
+                    } else {
+                        deactivate();
+                        return new ActivationResult(false,
+                                null,
+                                serverResponse.getMessage() +
+                                        (serverResponse.getExtraMessage() != null
+                                                ? "\n" + serverResponse.getExtraMessage()
+                                                : ""));
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed to parse response: " + e.getMessage());
+                    deactivate();
+                    return new ActivationResult(false, null, "Invalid server response");
+                }
+            } else {
+                System.err.println("Server returned error: " + response.statusCode() + " - " + responseBody);
+                deactivate();
+                return new ActivationResult(false, null, "Activation failed: HTTP " + response.statusCode());
+            }
+        } catch (Exception e) {
+            System.err.println("Activation error: " + e.getMessage());
+            deactivate();
+            return new ActivationResult(false, null, "Activation error: " + e.getMessage());
+        }
+    }
+
+    private static String getMachineId() {
+        try {
+            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+            while (networkInterfaces.hasMoreElements()) {
+                NetworkInterface network = networkInterfaces.nextElement();
+                if (network.isLoopback() || network.isVirtual() || !network.isUp()) {
+                    continue;
+                }
+                byte[] mac = network.getHardwareAddress();
+                if (mac != null) {
+                    StringBuilder sb = new StringBuilder();
+                    for (byte b : mac) {
+                        sb.append(String.format("%02X", b));
+                    }
+                    var machineId = sb.toString();
+                    log.info("Machine ID: " + machineId);
+                    return machineId;
+                }
+            }
+        } catch (SocketException e) {
+            log.error("Error getting machine ID", e);
+        }
+        return "UNKNOWN";
     }
 
     public static class ActivationRequest {
@@ -184,98 +276,5 @@ public class LicenseManager {
         public void setError(String error) {
             this.error = error;
         }
-    }
-
-    public static ActivationResult validateLicense() {
-        String savedKey = getSavedLicenseKey();
-        if (savedKey.isEmpty()) {
-            return new ActivationResult(false, null, "No license key found");
-        }
-        return activate(savedKey);
-    }
-
-    public static ActivationResult activate(String licenseKey) {
-        try {
-            String machineId = getMachineId();
-            ActivationRequest request = new ActivationRequest(licenseKey, machineId, VERSION_NUMBER);
-
-            String requestBody = objectMapper.writeValueAsString(request);
-            System.out.println("Sending activation request: " + requestBody);
-
-            HttpRequest httpRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(ACTIVATION_URL))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                    .timeout(Duration.ofSeconds(10))
-                    .build();
-
-            HttpResponse<String> response = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-            String responseBody = response.body();
-            System.out.println("Received response: " + responseBody);
-
-            if (response.statusCode() == 200) {
-                try {
-                    ServerResponse serverResponse = objectMapper.readValue(responseBody, ServerResponse.class);
-                    if (serverResponse.isResult()) {
-                        // Save all license information
-                        prefs.put(PREF_LICENSE_KEY, licenseKey);
-                        prefs.putBoolean(PREF_ACTIVATION_STATUS, true);
-                        prefs.put(PREF_EMAIL, serverResponse.getEmail() != null ? serverResponse.getEmail() : "");
-                        prefs.put(PREF_EXPIRATION_DATE, serverResponse.getExpirationDate());
-                        prefs.put(PREF_LICENSE_TYPE,
-                                serverResponse.getLicenseType() != null ? serverResponse.getLicenseType() : "");
-
-                        return new ActivationResult(true,
-                                serverResponse.getMessage(),
-                                null);
-                    } else {
-                        deactivate();
-                        return new ActivationResult(false,
-                                null,
-                                serverResponse.getMessage() +
-                                        (serverResponse.getExtraMessage() != null
-                                                ? "\n" + serverResponse.getExtraMessage()
-                                                : ""));
-                    }
-                } catch (Exception e) {
-                    System.err.println("Failed to parse response: " + e.getMessage());
-                    deactivate();
-                    return new ActivationResult(false, null, "Invalid server response");
-                }
-            } else {
-                System.err.println("Server returned error: " + response.statusCode() + " - " + responseBody);
-                deactivate();
-                return new ActivationResult(false, null, "Activation failed: HTTP " + response.statusCode());
-            }
-        } catch (Exception e) {
-            System.err.println("Activation error: " + e.getMessage());
-            deactivate();
-            return new ActivationResult(false, null, "Activation error: " + e.getMessage());
-        }
-    }
-
-    private static String getMachineId() {
-        try {
-            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
-            while (networkInterfaces.hasMoreElements()) {
-                NetworkInterface network = networkInterfaces.nextElement();
-                if (network.isLoopback() || network.isVirtual() || !network.isUp()) {
-                    continue;
-                }
-                byte[] mac = network.getHardwareAddress();
-                if (mac != null) {
-                    StringBuilder sb = new StringBuilder();
-                    for (byte b : mac) {
-                        sb.append(String.format("%02X", b));
-                    }
-                    var machineId = sb.toString();
-                    log.info("Machine ID: " + machineId);
-                    return machineId;
-                }
-            }
-        } catch (SocketException e) {
-            log.error("Error getting machine ID", e);
-        }
-        return "UNKNOWN";
     }
 }

@@ -6,42 +6,14 @@ import com.opencsv.exceptions.CsvException;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 public class CsvMerger {
-    public static class MergeResult {
-        private final boolean headersMatch;
-        private final List<String> combinedHeaders;
-        private final Map<File, List<String>> missingHeadersByFile;
-
-        public MergeResult(boolean headersMatch, List<String> combinedHeaders, Map<File, List<String>> missingHeadersByFile) {
-            this.headersMatch = headersMatch;
-            this.combinedHeaders = combinedHeaders;
-            this.missingHeadersByFile = missingHeadersByFile;
-        }
-
-        public boolean isHeadersMatch() {
-            return headersMatch;
-        }
-
-        public List<String> getCombinedHeaders() {
-            return combinedHeaders;
-        }
-
-        public Map<File, List<String>> getMissingHeadersByFile() {
-            return missingHeadersByFile;
-        }
-    }
-
     public MergeResult analyzeHeaders(List<File> files) throws IOException, CsvException {
         Set<String> allHeaders = new LinkedHashSet<>();
         Map<File, List<String>> headersByFile = new HashMap<>();
-        
+
         // Read headers from all files
         for (File file : files) {
             try (CSVReader reader = new CSVReader(new FileReader(file))) {
@@ -81,7 +53,7 @@ public class CsvMerger {
 
     public void mergeFiles(List<File> files, File outputFile, MergeResult mergeResult) throws IOException, CsvException {
         List<String> combinedHeaders = mergeResult.getCombinedHeaders();
-        
+
         try (CSVWriter writer = new CSVWriter(new FileWriter(outputFile))) {
             // Write combined headers
             writer.writeNext(combinedHeaders.toArray(new String[0]));
@@ -103,7 +75,7 @@ public class CsvMerger {
                     while ((nextLine = reader.readNext()) != null) {
                         String[] newLine = new String[combinedHeaders.size()];
                         Arrays.fill(newLine, ""); // Fill with empty strings
-                        
+
                         // Map values to their correct positions
                         for (int i = 0; i < nextLine.length; i++) {
                             Integer newIndex = headerMapping.get(i);
@@ -111,7 +83,7 @@ public class CsvMerger {
                                 newLine[newIndex] = nextLine[i];
                             }
                         }
-                        
+
                         writer.writeNext(newLine);
                     }
                 }
@@ -143,7 +115,7 @@ public class CsvMerger {
                 String sheetName = baseSheetName;
                 int attempt = 1;
                 while (usedSheetNames.contains(sheetName)) {
-                    String suffix = String.format("_%04d", (int)(Math.random() * 10000));
+                    String suffix = String.format("_%04d", (int) (Math.random() * 10000));
                     sheetName = baseSheetName + suffix;
                     if (sheetName.length() > 31) { // Excel sheet name length limit
                         sheetName = baseSheetName.substring(0, 31 - suffix.length()) + suffix;
@@ -194,6 +166,30 @@ public class CsvMerger {
             try (FileOutputStream fileOut = new FileOutputStream(outputFile)) {
                 workbook.write(fileOut);
             }
+        }
+    }
+
+    public static class MergeResult {
+        private final boolean headersMatch;
+        private final List<String> combinedHeaders;
+        private final Map<File, List<String>> missingHeadersByFile;
+
+        public MergeResult(boolean headersMatch, List<String> combinedHeaders, Map<File, List<String>> missingHeadersByFile) {
+            this.headersMatch = headersMatch;
+            this.combinedHeaders = combinedHeaders;
+            this.missingHeadersByFile = missingHeadersByFile;
+        }
+
+        public boolean isHeadersMatch() {
+            return headersMatch;
+        }
+
+        public List<String> getCombinedHeaders() {
+            return combinedHeaders;
+        }
+
+        public Map<File, List<String>> getMissingHeadersByFile() {
+            return missingHeadersByFile;
         }
     }
 }

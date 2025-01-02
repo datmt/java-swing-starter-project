@@ -1,34 +1,27 @@
 package com.binarycarpenter.spreadsheet.tools;
 
-import com.opencsv.CSVWriter;
 import com.binarycarpenter.spreadsheet.utils.Icons;
+import com.opencsv.CSVWriter;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.TableRowSorter;
-import javax.swing.table.TableModel;
-import javax.swing.RowFilter;
-import javax.swing.RowSorter;
 import javax.swing.RowFilter.Entry;
-import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Pattern;
-import java.util.Arrays;
-import java.util.stream.Collectors;
-import java.util.Comparator;
+import javax.swing.RowSorter.SortKey;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.table.TableColumn;
-import javax.swing.table.TableColumnModel;
-import javax.swing.RowSorter.SortKey;
-import javax.swing.SortOrder;
+import javax.swing.table.*;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class CsvEditorPanel extends JPanel {
     private JTable table;
@@ -94,7 +87,7 @@ public class CsvEditorPanel extends JPanel {
 
                 // Set tooltip if cell content is truncated
                 if (comp instanceof JComponent) {
-                    JComponent jc = (JComponent)comp;
+                    JComponent jc = (JComponent) comp;
                     if (value != null) {
                         String text = value.toString();
                         FontMetrics fm = comp.getFontMetrics(comp.getFont());
@@ -107,12 +100,12 @@ public class CsvEditorPanel extends JPanel {
                             int tooltipWidth = Math.min(300, Math.max(100, textWidth / 2));
 
                             // Format tooltip text with dynamic width and proper wrapping
-                            String tooltipText = "<html><div style='width: " + tooltipWidth + "px; padding: 5px;'>" + 
-                                               text.replace("<", "&lt;")
-                                                   .replace(">", "&gt;")
-                                                   .replace("\n", "<br>")
-                                                   .replace(" ", "&nbsp;") + 
-                                               "</div></html>";
+                            String tooltipText = "<html><div style='width: " + tooltipWidth + "px; padding: 5px;'>" +
+                                    text.replace("<", "&lt;")
+                                            .replace(">", "&gt;")
+                                            .replace("\n", "<br>")
+                                            .replace(" ", "&nbsp;") +
+                                    "</div></html>";
                             jc.setToolTipText(tooltipText);
                         } else {
                             jc.setToolTipText(null);
@@ -267,13 +260,13 @@ public class CsvEditorPanel extends JPanel {
         table.setModel(model);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         table.setFillsViewportHeight(true);
-        
+
         // Set up column model with proper resize behavior
         TableColumnModel columnModel = table.getColumnModel();
         for (int i = 0; i < columnModel.getColumnCount(); i++) {
             TableColumn column = columnModel.getColumn(i);
             column.setPreferredWidth(150); // Default width
-            
+
             // Add column resize listener
             column.addPropertyChangeListener(e -> {
                 if ("width".equals(e.getPropertyName())) {
@@ -301,7 +294,7 @@ public class CsvEditorPanel extends JPanel {
 
         // Enable column reordering
         table.getTableHeader().setReorderingAllowed(true);
-        
+
         // Set row height
         table.setRowHeight(24);
 
@@ -664,7 +657,7 @@ public class CsvEditorPanel extends JPanel {
                         headerRenderer = table.getTableHeader().getDefaultRenderer();
                     }
                     Component headerComp = headerRenderer.getTableCellRendererComponent(
-                        table, tableColumn.getHeaderValue(), false, false, 0, column);
+                            table, tableColumn.getHeaderValue(), false, false, 0, column);
                     width = Math.max(width, headerComp.getPreferredSize().width + 10);
 
                     // Check data width (sample first 100 rows)
@@ -883,15 +876,15 @@ public class CsvEditorPanel extends JPanel {
     private void sortColumn(int column) {
         List<? extends SortKey> sortKeys = sorter.getSortKeys();
         SortOrder currentOrder = SortOrder.ASCENDING;
-        
+
         if (!sortKeys.isEmpty()) {
             SortKey currentKey = sortKeys.get(0);
             if (currentKey.getColumn() == column) {
-                currentOrder = currentKey.getSortOrder() == SortOrder.ASCENDING ? 
-                    SortOrder.DESCENDING : SortOrder.ASCENDING;
+                currentOrder = currentKey.getSortOrder() == SortOrder.ASCENDING ?
+                        SortOrder.DESCENDING : SortOrder.ASCENDING;
             }
         }
-        
+
         sorter.setSortKeys(Arrays.asList(new RowSorter.SortKey(column, currentOrder)));
     }
 
@@ -962,9 +955,9 @@ public class CsvEditorPanel extends JPanel {
             currentFilters.clear();
             for (FilterCondition condition : filterConditions) {
                 currentFilters.add(new FilterState(
-                    (String) condition.columnCombo.getSelectedItem(),
-                    (String) condition.operatorCombo.getSelectedItem(),
-                    condition.valueField.getText()
+                        (String) condition.columnCombo.getSelectedItem(),
+                        (String) condition.operatorCombo.getSelectedItem(),
+                        condition.valueField.getText()
                 ));
             }
             applyFilters(filterConditions);
@@ -1027,6 +1020,83 @@ public class CsvEditorPanel extends JPanel {
         sorter.setRowFilter(filter);
     }
 
+    private void exportFilteredResults() {
+        if (table == null || table.getModel().getRowCount() == 0) {
+            JOptionPane.showMessageDialog(this,
+                    "No data to export",
+                    "Export Error",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("CSV Files", "csv"));
+
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            if (!file.getName().toLowerCase().endsWith(".csv")) {
+                file = new File(file.getParentFile(), file.getName() + ".csv");
+            }
+
+            if (file.exists()) {
+                int result = JOptionPane.showConfirmDialog(this,
+                        "File already exists. Do you want to overwrite it?",
+                        "Confirm Overwrite",
+                        JOptionPane.YES_NO_OPTION);
+                if (result != JOptionPane.YES_OPTION) {
+                    return;
+                }
+            }
+
+            try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {
+                DefaultTableModel model = (DefaultTableModel) table.getModel();
+                TableRowSorter<? extends TableModel> sorter =
+                        (TableRowSorter<? extends TableModel>) table.getRowSorter();
+
+                // Write headers
+                String[] headers = new String[model.getColumnCount()];
+                for (int i = 0; i < model.getColumnCount(); i++) {
+                    headers[i] = model.getColumnName(i);
+                }
+                writer.writeNext(headers);
+
+                // Write filtered data
+                for (int viewRow = 0; viewRow < table.getRowCount(); viewRow++) {
+                    String[] rowData = new String[model.getColumnCount()];
+                    for (int col = 0; col < model.getColumnCount(); col++) {
+                        int modelRow = table.convertRowIndexToModel(viewRow);
+                        Object value = model.getValueAt(modelRow, col);
+                        rowData[col] = value != null ? value.toString() : "";
+                    }
+                    writer.writeNext(rowData);
+                }
+
+                JOptionPane.showMessageDialog(this,
+                        "Export completed successfully",
+                        "Export Success",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Error exporting data: " + ex.getMessage(),
+                        "Export Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private static class FilterState {
+        String column;
+        String operator;
+        String value;
+
+        FilterState(String column, String operator, String value) {
+            this.column = column;
+            this.operator = operator;
+            this.value = value;
+        }
+    }
+
     // Inner class for filter condition UI and logic
     private class FilterCondition extends JPanel {
         private JComboBox<String> columnCombo;
@@ -1040,8 +1110,8 @@ public class CsvEditorPanel extends JPanel {
 
             columnCombo = new JComboBox<>(columns);
             operatorCombo = new JComboBox<>(new String[]{
-                "Equals", "Contains", "In List", 
-                "Greater Than", "Less Than", "Regex Match"
+                    "Equals", "Contains", "In List",
+                    "Greater Than", "Less Than", "Regex Match"
             });
             valueField = new JTextField(20);
             removeButton = new JButton("×");
@@ -1087,10 +1157,10 @@ public class CsvEditorPanel extends JPanel {
             switch (operator) {
                 case "Equals":
                     return cellValue.equalsIgnoreCase(filterValue);
-                    
+
                 case "Contains":
                     return cellValue.toLowerCase().contains(filterValue.toLowerCase());
-                    
+
                 case "In List":
                     String[] items = filterValue.split(",");
                     for (String item : items) {
@@ -1127,86 +1197,9 @@ public class CsvEditorPanel extends JPanel {
                         // If invalid regex, treat as no match
                         return false;
                     }
-                    
+
                 default:
                     return true;
-            }
-        }
-    }
-
-    private static class FilterState {
-        String column;
-        String operator;
-        String value;
-
-        FilterState(String column, String operator, String value) {
-            this.column = column;
-            this.operator = operator;
-            this.value = value;
-        }
-    }
-
-    private void exportFilteredResults() {
-        if (table == null || table.getModel().getRowCount() == 0) {
-            JOptionPane.showMessageDialog(this, 
-                "No data to export", 
-                "Export Error", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("CSV Files", "csv"));
-        
-        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            File file = fileChooser.getSelectedFile();
-            if (!file.getName().toLowerCase().endsWith(".csv")) {
-                file = new File(file.getParentFile(), file.getName() + ".csv");
-            }
-            
-            if (file.exists()) {
-                int result = JOptionPane.showConfirmDialog(this,
-                    "File already exists. Do you want to overwrite it?",
-                    "Confirm Overwrite",
-                    JOptionPane.YES_NO_OPTION);
-                if (result != JOptionPane.YES_OPTION) {
-                    return;
-                }
-            }
-
-            try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {
-                DefaultTableModel model = (DefaultTableModel) table.getModel();
-                TableRowSorter<? extends TableModel> sorter = 
-                    (TableRowSorter<? extends TableModel>) table.getRowSorter();
-                
-                // Write headers
-                String[] headers = new String[model.getColumnCount()];
-                for (int i = 0; i < model.getColumnCount(); i++) {
-                    headers[i] = model.getColumnName(i);
-                }
-                writer.writeNext(headers);
-                
-                // Write filtered data
-                for (int viewRow = 0; viewRow < table.getRowCount(); viewRow++) {
-                    String[] rowData = new String[model.getColumnCount()];
-                    for (int col = 0; col < model.getColumnCount(); col++) {
-                        int modelRow = table.convertRowIndexToModel(viewRow);
-                        Object value = model.getValueAt(modelRow, col);
-                        rowData[col] = value != null ? value.toString() : "";
-                    }
-                    writer.writeNext(rowData);
-                }
-                
-                JOptionPane.showMessageDialog(this,
-                    "Export completed successfully",
-                    "Export Success",
-                    JOptionPane.INFORMATION_MESSAGE);
-                
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this,
-                    "Error exporting data: " + ex.getMessage(),
-                    "Export Error",
-                    JOptionPane.ERROR_MESSAGE);
             }
         }
     }

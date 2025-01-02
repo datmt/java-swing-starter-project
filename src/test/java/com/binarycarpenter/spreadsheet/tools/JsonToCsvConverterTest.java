@@ -16,11 +16,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JsonToCsvConverterTest {
-    private JsonToCsvConverter converter;
-    private ObjectMapper objectMapper;
-    
     @TempDir
     Path tempDir;
+    private JsonToCsvConverter converter;
+    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
@@ -32,9 +31,9 @@ class JsonToCsvConverterTest {
     void shouldConvertSingleObjectJsonToCsv() throws IOException {
         // Given
         Map<String, Object> jsonData = Map.of(
-            "name", "John",
-            "age", 30,
-            "city", "New York"
+                "name", "John",
+                "age", 30,
+                "city", "New York"
         );
         File jsonFile = createJsonFile(jsonData, "single.json");
 
@@ -53,8 +52,8 @@ class JsonToCsvConverterTest {
     void shouldConvertJsonArrayToCsv() throws IOException {
         // Given
         List<Map<String, Object>> jsonData = List.of(
-            Map.of("name", "John", "age", 30),
-            Map.of("name", "Jane", "age", 25)
+                Map.of("name", "John", "age", 30),
+                Map.of("name", "Jane", "age", 25)
         );
         File jsonFile = createJsonFile(jsonData, "array.json");
 
@@ -74,11 +73,11 @@ class JsonToCsvConverterTest {
     void shouldHandleNestedObjects() throws IOException {
         // Given
         Map<String, Object> jsonData = Map.of(
-            "name", "John",
-            "address", Map.of(
-                "street", "123 Main St",
-                "city", "New York"
-            )
+                "name", "John",
+                "address", Map.of(
+                        "street", "123 Main St",
+                        "city", "New York"
+                )
         );
         File jsonFile = createJsonFile(jsonData, "nested.json");
 

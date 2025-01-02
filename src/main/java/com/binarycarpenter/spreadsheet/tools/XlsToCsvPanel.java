@@ -3,13 +3,12 @@ package com.binarycarpenter.spreadsheet.tools;
 import com.binarycarpenter.spreadsheet.tools.spreadsheet.ConversionResult;
 import com.binarycarpenter.spreadsheet.tools.spreadsheet.SpreadsheetConverter;
 import net.miginfocom.swing.MigLayout;
-import javax.swing.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.table.AbstractTableModel;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.AbstractTableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -36,10 +35,9 @@ public class XlsToCsvPanel extends JPanel {
     private final JCheckBox includeSubfoldersCheckbox;
     private final JButton convertButton;
     private final JButton removeSelectedButton;
-    private File outputDirectory;
     private final ExecutorService executor;
-
     private final Logger log = LoggerFactory.getLogger(XlsToCsvPanel.class);
+    private File outputDirectory;
 
     public XlsToCsvPanel() {
         setLayout(new MigLayout("fillx, insets 20", "[grow]", "[]10[]10[]10[]10[]"));
@@ -48,24 +46,24 @@ public class XlsToCsvPanel extends JPanel {
         // Input section
         JPanel inputPanel = new JPanel(new MigLayout("fillx", "[grow][]", "[]5[]"));
         inputPanel.setBorder(BorderFactory.createTitledBorder("Input Files"));
-        
+
         // File selection buttons
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         selectFilesButton = new JButton("Select Files");
         selectFilesButton.addActionListener(e -> selectFiles());
         buttonPanel.add(selectFilesButton);
-        
+
         selectFolderButton = new JButton("Select Folder");
         selectFolderButton.addActionListener(e -> selectFolder());
         buttonPanel.add(selectFolderButton);
-        
+
         includeSubfoldersCheckbox = new JCheckBox("Include subfolders");
         buttonPanel.add(includeSubfoldersCheckbox);
-        
+
         removeSelectedButton = new JButton("Remove Selected");
         removeSelectedButton.addActionListener(e -> removeSelectedFiles());
         buttonPanel.add(removeSelectedButton);
-        
+
         inputPanel.add(buttonPanel, "wrap");
 
         // Files list
@@ -75,30 +73,30 @@ public class XlsToCsvPanel extends JPanel {
         JScrollPane filesScrollPane = new JScrollPane(inputFilesList);
         filesScrollPane.setPreferredSize(new Dimension(0, 150));
         inputPanel.add(filesScrollPane, "growx, wrap");
-        
+
         add(inputPanel, "growx, wrap");
 
         // Output location section
         JPanel outputPanel = new JPanel(new MigLayout("fillx", "[grow][]", "[]5[]"));
         outputPanel.setBorder(BorderFactory.createTitledBorder("Output Location"));
-        
+
         ButtonGroup locationGroup = new ButtonGroup();
         sameLocationRadio = new JRadioButton("Same as input files");
         customLocationRadio = new JRadioButton("Custom location");
         locationGroup.add(sameLocationRadio);
         locationGroup.add(customLocationRadio);
         sameLocationRadio.setSelected(true);
-        
+
         outputPanel.add(sameLocationRadio, "wrap");
         outputPanel.add(customLocationRadio, "split 2");
-        
+
         selectOutputButton = new JButton("Select Output Folder");
         selectOutputButton.setEnabled(false);
         selectOutputButton.addActionListener(e -> selectOutputFolder());
         outputPanel.add(selectOutputButton, "wrap");
-        
+
         customLocationRadio.addActionListener(e -> selectOutputButton.setEnabled(customLocationRadio.isSelected()));
-        
+
         add(outputPanel, "growx, wrap");
 
         // Convert button
@@ -123,7 +121,7 @@ public class XlsToCsvPanel extends JPanel {
                 }
             }
         });
-        
+
         JScrollPane resultsScrollPane = new JScrollPane(resultsTable);
         resultsScrollPane.setPreferredSize(new Dimension(0, 200));
         add(resultsScrollPane, "grow");
@@ -135,7 +133,7 @@ public class XlsToCsvPanel extends JPanel {
         JFileChooser chooser = new JFileChooser();
         chooser.setMultiSelectionEnabled(true);
         chooser.setFileFilter(new FileNameExtensionFilter(
-            "Excel files (*.xlsx, *.xls)", "xlsx", "xls"));
+                "Excel files (*.xlsx, *.xls)", "xlsx", "xls"));
 
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             for (File file : chooser.getSelectedFiles()) {
@@ -154,16 +152,16 @@ public class XlsToCsvPanel extends JPanel {
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File folder = chooser.getSelectedFile();
             try {
-                List<File> files = Files.walk(folder.toPath(), 
-                        includeSubfoldersCheckbox.isSelected() ? Integer.MAX_VALUE : 1)
-                    .filter(path -> {
-                        String name = path.toString().toLowerCase();
-                        return name.endsWith(".xlsx") || 
-                               name.endsWith(".xls");
-                    })
-                    .map(Path::toFile)
-                    .collect(Collectors.toList());
-                
+                List<File> files = Files.walk(folder.toPath(),
+                                includeSubfoldersCheckbox.isSelected() ? Integer.MAX_VALUE : 1)
+                        .filter(path -> {
+                            String name = path.toString().toLowerCase();
+                            return name.endsWith(".xlsx") ||
+                                    name.endsWith(".xls");
+                        })
+                        .map(Path::toFile)
+                        .collect(Collectors.toList());
+
                 for (File file : files) {
                     if (!isFileAlreadyAdded(file)) {
                         inputFilesModel.addElement(file);
@@ -171,9 +169,9 @@ public class XlsToCsvPanel extends JPanel {
                 }
                 updateConvertButton();
             } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, 
-                    "Error scanning folder: " + e.getMessage(), 
-                    "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this,
+                        "Error scanning folder: " + e.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -223,8 +221,8 @@ public class XlsToCsvPanel extends JPanel {
                 for (int i = 0; i < total; i++) {
                     File inputFile = inputFilesModel.getElementAt(i);
                     try {
-                        File outputDir = customLocationRadio.isSelected() ? 
-                            outputDirectory : inputFile.getParentFile();
+                        File outputDir = customLocationRadio.isSelected() ?
+                                outputDirectory : inputFile.getParentFile();
 
                         ConversionResult result = SpreadsheetConverter.convertToCSV(inputFile, outputDir);
                         results.add(result);
@@ -241,9 +239,9 @@ public class XlsToCsvPanel extends JPanel {
             } catch (Exception e) {
                 log.error("Error during conversion", e);
                 SwingUtilities.invokeLater(() -> {
-                    JOptionPane.showMessageDialog(this, 
-                        "Error during conversion: " + e.getMessage(), 
-                        "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this,
+                            "Error during conversion: " + e.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
                     setControlsEnabled(true);
                 });
             }
@@ -268,8 +266,8 @@ public class XlsToCsvPanel extends JPanel {
             Desktop.getDesktop().open(file);
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this,
-                "Error opening file/folder: " + e.getMessage(),
-                "Error", JOptionPane.ERROR_MESSAGE);
+                    "Error opening file/folder: " + e.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -287,8 +285,8 @@ public class XlsToCsvPanel extends JPanel {
 
     private static class FileListCellRenderer extends DefaultListCellRenderer {
         @Override
-        public Component getListCellRendererComponent(JList<?> list, Object value, 
-                int index, boolean isSelected, boolean cellHasFocus) {
+        public Component getListCellRendererComponent(JList<?> list, Object value,
+                                                      int index, boolean isSelected, boolean cellHasFocus) {
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof File) {
                 File file = (File) value;

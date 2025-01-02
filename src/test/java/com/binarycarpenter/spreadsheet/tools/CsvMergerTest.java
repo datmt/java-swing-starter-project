@@ -22,9 +22,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CsvMergerTest {
-    private CsvMerger merger;
     @TempDir
     Path tempDir;
+    private CsvMerger merger;
 
     @BeforeEach
     void setUp() {
@@ -64,7 +64,7 @@ class CsvMergerTest {
         String[] headers = {"id", "name", "value"};
         String[][] data1 = {{"1", "John", "100"}, {"2", "Jane", "200"}};
         String[][] data2 = {{"3", "Bob", "300"}, {"4", "Alice", "400"}};
-        
+
         File file1 = createCsvFile("file1.csv", headers, data1);
         File file2 = createCsvFile("file2.csv", headers, data2);
 
@@ -84,7 +84,7 @@ class CsvMergerTest {
         String[] headers2 = {"id", "age", "city"};
         String[][] data1 = {{"1", "John", "100"}};
         String[][] data2 = {{"1", "25", "NYC"}};
-        
+
         File file1 = createCsvFile("file1.csv", headers1, data1);
         File file2 = createCsvFile("file2.csv", headers2, data2);
 
@@ -94,8 +94,8 @@ class CsvMergerTest {
         // Assert
         assertFalse(result.isHeadersMatch());
         assertThat(result.getCombinedHeaders())
-            .containsExactlyInAnyOrder("id", "name", "value", "age", "city");
-        
+                .containsExactlyInAnyOrder("id", "name", "value", "age", "city");
+
         Map<File, List<String>> missingHeaders = result.getMissingHeadersByFile();
         assertThat(missingHeaders.get(file1)).containsExactlyInAnyOrder("age", "city");
         assertThat(missingHeaders.get(file2)).containsExactlyInAnyOrder("name", "value");
@@ -107,7 +107,7 @@ class CsvMergerTest {
         String[] headers = {"id", "name", "value"};
         String[][] data1 = {{"1", "John", "100"}, {"2", "Jane", "200"}};
         String[][] data2 = {{"3", "Bob", "300"}, {"4", "Alice", "400"}};
-        
+
         File file1 = createCsvFile("file1.csv", headers, data1);
         File file2 = createCsvFile("file2.csv", headers, data2);
         File outputFile = tempDir.resolve("output.csv").toFile();
@@ -119,10 +119,10 @@ class CsvMergerTest {
         // Assert
         List<String[]> mergedData = readCsvFile(outputFile);
         assertEquals(5, mergedData.size()); // header + 4 data rows
-        
+
         // Check headers
         assertArrayEquals(headers, mergedData.get(0));
-        
+
         // Check data
         assertArrayEquals(data1[0], mergedData.get(1));
         assertArrayEquals(data1[1], mergedData.get(2));
@@ -137,7 +137,7 @@ class CsvMergerTest {
         String[] headers2 = {"id", "age"};
         String[][] data1 = {{"1", "John"}, {"2", "Jane"}};
         String[][] data2 = {{"3", "25"}, {"4", "30"}};
-        
+
         File file1 = createCsvFile("file1.csv", headers1, data1);
         File file2 = createCsvFile("file2.csv", headers2, data2);
         File outputFile = tempDir.resolve("output.csv").toFile();
@@ -149,14 +149,14 @@ class CsvMergerTest {
         // Assert
         List<String[]> mergedData = readCsvFile(outputFile);
         assertEquals(5, mergedData.size()); // header + 4 data rows
-        
+
         // Check headers contain all columns
         assertThat(mergedData.get(0)).containsExactlyInAnyOrder("id", "name", "age");
-        
+
         // Check data from first file (should have empty age)
         assertThat(mergedData.get(1)).containsExactly("1", "John", "");
         assertThat(mergedData.get(2)).containsExactly("2", "Jane", "");
-        
+
         // Check data from second file (should have empty name)
         assertThat(mergedData.get(3)).containsExactly("3", "", "25");
         assertThat(mergedData.get(4)).containsExactly("4", "", "30");
@@ -169,7 +169,7 @@ class CsvMergerTest {
         String[] headers2 = {"id", "age", "city"};
         String[][] data1 = {{"1", "John", "100"}, {"2", "Jane", "200"}};
         String[][] data2 = {{"3", "25", "NYC"}, {"4", "30", "LA"}};
-        
+
         File file1 = createCsvFile("file1.csv", headers1, data1);
         File file2 = createCsvFile("file2.csv", headers2, data2);
         File outputFile = tempDir.resolve("output.xlsx").toFile();
@@ -180,27 +180,27 @@ class CsvMergerTest {
         // Assert
         try (Workbook workbook = WorkbookFactory.create(outputFile)) {
             assertEquals(2, workbook.getNumberOfSheets());
-            
+
             // Check first sheet
             Sheet sheet1 = workbook.getSheetAt(0);
             assertEquals("file1", sheet1.getSheetName());
             List<List<String>> sheet1Data = readExcelSheet(sheet1);
-            
+
             assertEquals(3, sheet1Data.size()); // header + 2 data rows
             assertThat(sheet1Data.get(0)).containsExactly("id", "name", "value");
             assertThat(sheet1Data.get(1)).containsExactly("1", "John", "100");
             assertThat(sheet1Data.get(2)).containsExactly("2", "Jane", "200");
-            
+
             // Check second sheet
             Sheet sheet2 = workbook.getSheetAt(1);
             assertEquals("file2", sheet2.getSheetName());
             List<List<String>> sheet2Data = readExcelSheet(sheet2);
-            
+
             assertEquals(3, sheet2Data.size()); // header + 2 data rows
             assertThat(sheet2Data.get(0)).containsExactly("id", "age", "city");
             assertThat(sheet2Data.get(1)).containsExactly("3", "25", "NYC");
             assertThat(sheet2Data.get(2)).containsExactly("4", "30", "LA");
-            
+
             // Check header styling
             Row headerRow1 = sheet1.getRow(0);
             CellStyle headerStyle = headerRow1.getCell(0).getCellStyle();
@@ -216,7 +216,7 @@ class CsvMergerTest {
         // Arrange
         String[] headers = {"id", "name"};
         String[][] data = new String[0][0];
-        
+
         File file1 = createCsvFile("file1.csv", headers, data);
         File file2 = createCsvFile("file2.csv", headers, data);
         File outputFile = tempDir.resolve("output.xlsx").toFile();
@@ -227,7 +227,7 @@ class CsvMergerTest {
         // Assert
         try (Workbook workbook = WorkbookFactory.create(outputFile)) {
             assertEquals(2, workbook.getNumberOfSheets());
-            
+
             // Check both sheets have only headers
             for (int i = 0; i < 2; i++) {
                 Sheet sheet = workbook.getSheetAt(i);
@@ -243,7 +243,7 @@ class CsvMergerTest {
         // Arrange
         String[] headers = {"id", "name", "value"};
         String[][] data = {{"1", "John", "100"}};
-        
+
         // Create two files with the same name in different directories
         File file1 = createCsvFile("data.csv", headers, data);
         File file2 = createCsvFile("data.csv", headers, data);
@@ -255,22 +255,22 @@ class CsvMergerTest {
         // Assert
         try (Workbook workbook = WorkbookFactory.create(outputFile)) {
             assertEquals(2, workbook.getNumberOfSheets());
-            
+
             // Get sheet names
             String sheet1Name = workbook.getSheetName(0);
             String sheet2Name = workbook.getSheetName(1);
-            
+
             // Verify sheet names are different
             assertNotEquals(sheet1Name, sheet2Name);
-            
+
             // Verify both sheets start with "data"
             assertTrue(sheet1Name.startsWith("data"));
             assertTrue(sheet2Name.startsWith("data"));
-            
+
             // Verify sheet names are not longer than 31 characters (Excel limit)
             assertTrue(sheet1Name.length() <= 31);
             assertTrue(sheet2Name.length() <= 31);
-            
+
             // Verify data in both sheets
             for (int i = 0; i < 2; i++) {
                 Sheet sheet = workbook.getSheetAt(i);
@@ -288,7 +288,7 @@ class CsvMergerTest {
         String[] headers = {"id", "name"};
         String[][] data = {{"1", "John"}};
         String longFileName = "very_long_file_name_that_exceeds_excel_limit.csv";
-        
+
         File file1 = createCsvFile(longFileName, headers, data);
         File file2 = createCsvFile(longFileName, headers, data);
         File outputFile = tempDir.resolve("output.xlsx").toFile();
@@ -299,16 +299,16 @@ class CsvMergerTest {
         // Assert
         try (Workbook workbook = WorkbookFactory.create(outputFile)) {
             assertEquals(2, workbook.getNumberOfSheets());
-            
+
             // Get sheet names
             String sheet1Name = workbook.getSheetName(0);
             String sheet2Name = workbook.getSheetName(1);
-            
+
             // Verify sheet names are different and within length limit
             assertNotEquals(sheet1Name, sheet2Name);
             assertTrue(sheet1Name.length() <= 31);
             assertTrue(sheet2Name.length() <= 31);
-            
+
             // Verify both sheets contain the data
             for (int i = 0; i < 2; i++) {
                 Sheet sheet = workbook.getSheetAt(i);

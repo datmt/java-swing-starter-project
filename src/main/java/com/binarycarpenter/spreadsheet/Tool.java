@@ -7,10 +7,10 @@ import java.util.function.Supplier;
 
 public class Tool {
     private final String name;
-    private JPanel content;
     private final Supplier<JPanel> contentSupplier;
     private final List<Tool> children;
     private final boolean isCategory;
+    private JPanel content;
 
     public Tool(String name, JPanel content) {
         this(name, content, false);

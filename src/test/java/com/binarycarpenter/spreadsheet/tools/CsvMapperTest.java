@@ -48,13 +48,13 @@ class CsvMapperTest {
     void testSuccessfulMapping() throws IOException, CsvException {
         // Setup mapper: Map customer IDs to their values
         CsvMapper mapper = new CsvMapper(
-            sourceFile,
-            targetFile,
-            0,  // source lookup column (ID)
-            2,  // source value column (Value)
-            1,  // target lookup column (CustomerID)
-            3,  // target output column (MappedValue)
-            "N/A"
+                sourceFile,
+                targetFile,
+                0,  // source lookup column (ID)
+                2,  // source value column (Value)
+                1,  // target lookup column (CustomerID)
+                3,  // target output column (MappedValue)
+                "N/A"
         );
 
         // Perform mapping
@@ -68,8 +68,8 @@ class CsvMapperTest {
 
             // Verify header
             assertArrayEquals(
-                new String[]{"OrderID", "CustomerID", "Amount", "MappedValue"},
-                rows.get(0)
+                    new String[]{"OrderID", "CustomerID", "Amount", "MappedValue"},
+                    rows.get(0)
             );
 
             // Verify mapped values
@@ -83,13 +83,13 @@ class CsvMapperTest {
     void testMappingWithAllDefaultValues() throws IOException, CsvException {
         // Setup mapper with non-existent lookup values
         CsvMapper mapper = new CsvMapper(
-            sourceFile,
-            targetFile,
-            0,  // source lookup column (ID)
-            2,  // source value column (Value)
-            0,  // target lookup column (OrderID) - No matches will be found
-            3,  // target output column (MappedValue)
-            "NOT_FOUND"
+                sourceFile,
+                targetFile,
+                0,  // source lookup column (ID)
+                2,  // source value column (Value)
+                0,  // target lookup column (OrderID) - No matches will be found
+                3,  // target output column (MappedValue)
+                "NOT_FOUND"
         );
 
         // Perform mapping
@@ -113,10 +113,10 @@ class CsvMapperTest {
         }
 
         CsvMapper mapper = new CsvMapper(
-            emptySource,
-            targetFile,
-            0, 2, 1, 3,
-            "EMPTY"
+                emptySource,
+                targetFile,
+                0, 2, 1, 3,
+                "EMPTY"
         );
 
         File outputFile = mapper.performMapping();
@@ -139,10 +139,10 @@ class CsvMapperTest {
         }
 
         CsvMapper mapper = new CsvMapper(
-            sourceFile,
-            emptyTarget,
-            0, 2, 1, 3,
-            "DEFAULT"
+                sourceFile,
+                emptyTarget,
+                0, 2, 1, 3,
+                "DEFAULT"
         );
 
         File outputFile = mapper.performMapping();
@@ -152,8 +152,8 @@ class CsvMapperTest {
             List<String[]> rows = reader.readAll();
             assertEquals(1, rows.size());
             assertArrayEquals(
-                new String[]{"OrderID", "CustomerID", "Amount", "MappedValue"},
-                rows.get(0)
+                    new String[]{"OrderID", "CustomerID", "Amount", "MappedValue"},
+                    rows.get(0)
             );
         }
     }
@@ -170,10 +170,10 @@ class CsvMapperTest {
         }
 
         CsvMapper mapper = new CsvMapper(
-            duplicateSource,
-            targetFile,
-            0, 2, 1, 3,
-            "N/A"
+                duplicateSource,
+                targetFile,
+                0, 2, 1, 3,
+                "N/A"
         );
 
         File outputFile = mapper.performMapping();
@@ -196,13 +196,13 @@ class CsvMapperTest {
     void testInvalidColumnIndexes() {
         // Test with column index out of bounds
         CsvMapper mapper = new CsvMapper(
-            sourceFile,
-            targetFile,
-            99, // Invalid source lookup column
-            2,
-            1,
-            3,
-            "ERROR"
+                sourceFile,
+                targetFile,
+                99, // Invalid source lookup column
+                2,
+                1,
+                3,
+                "ERROR"
         );
 
         assertThrows(ArrayIndexOutOfBoundsException.class, () -> {
@@ -213,10 +213,10 @@ class CsvMapperTest {
     @Test
     void testWithNullDefaultValue() throws IOException, CsvException {
         CsvMapper mapper = new CsvMapper(
-            sourceFile,
-            targetFile,
-            0, 2, 1, 3,
-            null
+                sourceFile,
+                targetFile,
+                0, 2, 1, 3,
+                null
         );
 
         File outputFile = mapper.performMapping();

@@ -5,7 +5,10 @@ import org.jopendocument.dom.spreadsheet.SpreadSheet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +16,8 @@ import java.util.regex.Pattern;
 
 public class SpreadsheetConverter {
     private static final Pattern INVALID_CHARS = Pattern.compile("[^a-zA-Z0-9-_.]");
-    private static final Logger log = LoggerFactory.getLogger(SpreadsheetConverter.class);    
+    private static final Logger log = LoggerFactory.getLogger(SpreadsheetConverter.class);
+
     public static ConversionResult convertToCSV(File inputFile, File outputDir) throws IOException {
         List<File> outputFiles = new ArrayList<>();
         try {
@@ -41,19 +45,19 @@ public class SpreadsheetConverter {
         try (Workbook workbook = WorkbookFactory.create(inputFile)) {
             // Create formula evaluator
             FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
-            
+
             int sheetCount = workbook.getNumberOfSheets();
             for (int i = 0; i < sheetCount; i++) {
                 org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheetAt(i);
                 String sheetName = sheet.getSheetName();
-                
+
                 String baseFileName = getBaseFileName(inputFile.getName());
                 String csvFileName = normalizeFileName(baseFileName + "_" + sheetName + ".csv");
                 File csvFile = new File(outputDir, csvFileName);
-                
+
                 try (FileWriter fw = new FileWriter(csvFile);
                      BufferedWriter bw = new BufferedWriter(fw)) {
-                    
+
                     // Convert each row
                     for (Row row : sheet) {
                         StringBuilder line = new StringBuilder();
@@ -78,22 +82,22 @@ public class SpreadsheetConverter {
         try {
             SpreadSheet spreadSheet = SpreadSheet.createFromFile(inputFile);
             int sheetCount = spreadSheet.getSheetCount();
-            
+
             for (int i = 0; i < sheetCount; i++) {
                 org.jopendocument.dom.spreadsheet.Sheet sheet = spreadSheet.getSheet(i);
                 String sheetName = sheet.getName();
-                
+
                 String baseFileName = getBaseFileName(inputFile.getName());
                 String csvFileName = normalizeFileName(baseFileName + "_" + sheetName + ".csv");
                 File csvFile = new File(outputDir, csvFileName);
-                
+
                 try (FileWriter fw = new FileWriter(csvFile);
                      BufferedWriter bw = new BufferedWriter(fw)) {
-                    
+
                     // Get sheet dimensions
                     int rowCount = sheet.getRowCount();
                     int colCount = sheet.getColumnCount();
-                    
+
                     // Convert each row
                     for (int row = 0; row < rowCount; row++) {
                         StringBuilder line = new StringBuilder();
@@ -120,7 +124,7 @@ public class SpreadsheetConverter {
         if (cell == null) {
             return "";
         }
-        
+
         String value;
         switch (cell.getCellType()) {
             case STRING:
@@ -162,12 +166,12 @@ public class SpreadsheetConverter {
         if (value == null) {
             return "";
         }
-        
+
         boolean needsQuotes = value.contains(",") || value.contains("\"") || value.contains("\n");
         if (!needsQuotes) {
             return value;
         }
-        
+
         return "\"" + value.replace("\"", "\"\"") + "\"";
     }
 
@@ -186,18 +190,18 @@ public class SpreadsheetConverter {
         // Remove extension
         String baseName = getBaseFileName(fileName);
         String extension = getFileExtension(new File(fileName));
-        
+
         // Normalize base name
         String normalized = Normalizer.normalize(baseName, Normalizer.Form.NFD)
                 .replaceAll("[^\\p{ASCII}]", "") // Remove non-ASCII
                 .replaceAll("\\s+", "_")         // Replace spaces with underscore
                 .replaceAll("[^a-zA-Z0-9-_]", "") // Remove other invalid chars
                 .toLowerCase();
-        
+
         // Ensure the name is not empty and add extension
-        normalized = (normalized.isEmpty() ? "file" : normalized) + 
-                    (extension.isEmpty() ? "" : "." + extension);
-        
+        normalized = (normalized.isEmpty() ? "file" : normalized) +
+                (extension.isEmpty() ? "" : "." + extension);
+
         return normalized;
     }
 }

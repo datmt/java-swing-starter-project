@@ -25,7 +25,7 @@ public class JsonToCsvConverter {
         JsonNode rootNode = objectMapper.readTree(jsonFile);
         Set<String> headers = extractHeaders(rootNode);
         File csvFile = createCsvFile(jsonFile);
-        
+
         try (CSVWriter writer = new CSVWriter(new FileWriter(csvFile),
                 CSVWriter.DEFAULT_SEPARATOR,
                 CSVWriter.DEFAULT_QUOTE_CHARACTER,
@@ -34,7 +34,7 @@ public class JsonToCsvConverter {
             writeHeaders(writer, headers);
             writeData(writer, rootNode, headers);
         }
-        
+
         return csvFile;
     }
 

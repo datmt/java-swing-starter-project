@@ -1,6 +1,9 @@
 package com.binarycarpenter.spreadsheet.tools.csv;
 
 import net.miginfocom.swing.MigLayout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
@@ -8,15 +11,8 @@ import java.awt.*;
 import java.io.File;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import javax.swing.SwingWorker;
-
 public class CsvDiffPanel extends JPanel {
     private final Logger log = LoggerFactory.getLogger(CsvDiffPanel.class);
-    
-    private File file1;
-    private File file2;
     private final JTextField file1Field;
     private final JTextField file2Field;
     private final JList<String> columnList;
@@ -30,6 +26,8 @@ public class CsvDiffPanel extends JPanel {
     private final JButton compareButton;
     private final JLabel summaryLabel;
     private final JProgressBar progressBar;
+    private File file1;
+    private File file2;
 
     public CsvDiffPanel() {
         setLayout(new MigLayout("fillx, insets 20", "[grow]", "[]10[]10[]10[]"));
@@ -113,7 +111,7 @@ public class CsvDiffPanel extends JPanel {
         resultsPanel.add(summaryLabel, "wrap");
 
         diffTableModel = new DefaultTableModel(
-            new String[]{"Type", "Key Values", "Column", "Old Value", "New Value"}, 0);
+                new String[]{"Type", "Key Values", "Column", "Old Value", "New Value"}, 0);
         diffTable = new JTable(diffTableModel);
         JScrollPane tableScroll = new JScrollPane(diffTable);
         tableScroll.setPreferredSize(new Dimension(0, 300));
@@ -151,15 +149,15 @@ public class CsvDiffPanel extends JPanel {
             } catch (Exception e) {
                 log.error("Error reading headers", e);
                 JOptionPane.showMessageDialog(this,
-                    "Error reading file headers: " + e.getMessage(),
-                    "Error", JOptionPane.ERROR_MESSAGE);
+                        "Error reading file headers: " + e.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
     private void updateCompareButton() {
-        compareButton.setEnabled(file1 != null && file2 != null && 
-                               columnList.getSelectedIndices().length > 0);
+        compareButton.setEnabled(file1 != null && file2 != null &&
+                columnList.getSelectedIndices().length > 0);
     }
 
     private void compareFiles() {
@@ -175,12 +173,12 @@ public class CsvDiffPanel extends JPanel {
                     List<String> selectedColumns = columnList.getSelectedValuesList();
                     CsvDiffEngine engine = new CsvDiffEngine();
                     return engine.compareFiles(
-                        file1, file2,
-                        columnList.getSelectedValuesList(),
-                        ignoreCaseCheckbox.isSelected(),
-                        ignoreWhitespaceCheckbox.isSelected(),
-                        strictRowOrderCheckbox.isSelected(),
-                        ignoreDuplicatesCheckbox.isSelected()
+                            file1, file2,
+                            columnList.getSelectedValuesList(),
+                            ignoreCaseCheckbox.isSelected(),
+                            ignoreWhitespaceCheckbox.isSelected(),
+                            strictRowOrderCheckbox.isSelected(),
+                            ignoreDuplicatesCheckbox.isSelected()
                     );
                 }
 
@@ -188,7 +186,7 @@ public class CsvDiffPanel extends JPanel {
                 protected void done() {
                     try {
                         CsvDiffEngine.DiffResult result = get();
-                        
+
                         // Update summary
                         updateSummary(result);
 
@@ -199,11 +197,11 @@ public class CsvDiffPanel extends JPanel {
                         for (CsvDiffEngine.RowDiff diff : result.getModifiedRows()) {
                             for (String column : diff.getModifiedColumns()) {
                                 diffTableModel.addRow(new Object[]{
-                                    "Modified",
-                                    String.join(", ", diff.getKeyValues()),
-                                    column,
-                                    diff.getOldValues().get(column),
-                                    diff.getNewValues().get(column)
+                                        "Modified",
+                                        String.join(", ", diff.getKeyValues()),
+                                        column,
+                                        diff.getOldValues().get(column),
+                                        diff.getNewValues().get(column)
                                 });
                             }
                         }
@@ -211,29 +209,29 @@ public class CsvDiffPanel extends JPanel {
                         // Add removed rows
                         for (CsvDiffEngine.RowDiff diff : result.getRemovedRows()) {
                             diffTableModel.addRow(new Object[]{
-                                "Removed",
-                                String.join(", ", diff.getKeyValues()),
-                                "",
-                                "",
-                                ""
+                                    "Removed",
+                                    String.join(", ", diff.getKeyValues()),
+                                    "",
+                                    "",
+                                    ""
                             });
                         }
 
                         // Add added rows
                         for (CsvDiffEngine.RowDiff diff : result.getAddedRows()) {
                             diffTableModel.addRow(new Object[]{
-                                "Added",
-                                String.join(", ", diff.getKeyValues()),
-                                "",
-                                "",
-                                ""
+                                    "Added",
+                                    String.join(", ", diff.getKeyValues()),
+                                    "",
+                                    "",
+                                    ""
                             });
                         }
                     } catch (Exception e) {
                         log.error("Error comparing files", e);
                         JOptionPane.showMessageDialog(CsvDiffPanel.this,
-                            "Error comparing files: " + e.getMessage(),
-                            "Error", JOptionPane.ERROR_MESSAGE);
+                                "Error comparing files: " + e.getMessage(),
+                                "Error", JOptionPane.ERROR_MESSAGE);
                     } finally {
                         // Hide progress bar and re-enable compare button
                         progressBar.setVisible(false);
@@ -246,8 +244,8 @@ public class CsvDiffPanel extends JPanel {
         } catch (Exception e) {
             log.error("Error comparing files", e);
             JOptionPane.showMessageDialog(this,
-                "Error comparing files: " + e.getMessage(),
-                "Error", JOptionPane.ERROR_MESSAGE);
+                    "Error comparing files: " + e.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
             progressBar.setVisible(false);
             updateCompareButton();
         }
@@ -257,8 +255,8 @@ public class CsvDiffPanel extends JPanel {
         StringBuilder summary = new StringBuilder("<html>");
         summary.append("Summary: ");
         if (result.getAddedColumns().isEmpty() && result.getRemovedColumns().isEmpty() &&
-            result.getAddedRows().isEmpty() && result.getRemovedRows().isEmpty() &&
-            result.getModifiedRows().isEmpty()) {
+                result.getAddedRows().isEmpty() && result.getRemovedRows().isEmpty() &&
+                result.getModifiedRows().isEmpty()) {
             summary.append("<b>Files are identical</b>");
         } else {
             if (!result.getAddedColumns().isEmpty() || !result.getRemovedColumns().isEmpty()) {

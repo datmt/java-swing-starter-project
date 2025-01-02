@@ -3,9 +3,9 @@ package com.binarycarpenter.spreadsheet.tools;
 import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvException;
 import net.miginfocom.swing.MigLayout;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -16,12 +16,17 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 public class SpreadsheetSearchPanel extends JPanel {
+    private static final String[] COLUMN_NAMES = {
+            "File", "Sheet/Tab", "Row", "Column", "Cell Content", "Search Term"
+    };
     private JTextArea searchTextArea;
     private DefaultListModel<String> pathListModel;
     private JList<String> pathList;
@@ -38,10 +43,6 @@ public class SpreadsheetSearchPanel extends JPanel {
     private SwingWorker<Void, SearchResult> currentSearch;
     private Set<Path> searchPaths;
 
-    private static final String[] COLUMN_NAMES = {
-        "File", "Sheet/Tab", "Row", "Column", "Cell Content", "Search Term"
-    };
-
     public SpreadsheetSearchPanel() {
         setLayout(new MigLayout("fill, insets 5", "[grow]", "[][]10[]5[grow][]"));
         searchPaths = new HashSet<>();
@@ -54,12 +55,12 @@ public class SpreadsheetSearchPanel extends JPanel {
         searchTextArea = new JTextArea(5, 20);
         searchTextArea.setLineWrap(true);
         searchTextArea.setWrapStyleWord(true);
-        
+
         // Initialize path list
         pathListModel = new DefaultListModel<>();
         pathList = new JList<>(pathListModel);
         pathList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        
+
         // Initialize buttons
         addDirectoryButton = new JButton("Add Directory");
         addFilesButton = new JButton("Add Files");
@@ -67,7 +68,7 @@ public class SpreadsheetSearchPanel extends JPanel {
         searchButton = new JButton("Search");
         exactMatchCheckBox = new JCheckBox("Exact Match");
         regexCheckBox = new JCheckBox("Regex");
-        
+
         // Initialize results table
         tableModel = new DefaultTableModel(COLUMN_NAMES, 0) {
             @Override
@@ -94,7 +95,7 @@ public class SpreadsheetSearchPanel extends JPanel {
         addFilesButton.addActionListener(e -> addFiles());
         removeButton.addActionListener(e -> removeSelected());
         searchButton.addActionListener(e -> startSearch());
-        
+
         regexCheckBox.addActionListener(e -> {
             if (regexCheckBox.isSelected()) {
                 exactMatchCheckBox.setSelected(false);
@@ -103,7 +104,7 @@ public class SpreadsheetSearchPanel extends JPanel {
                 exactMatchCheckBox.setEnabled(true);
             }
         });
-        
+
         exactMatchCheckBox.addActionListener(e -> {
             if (exactMatchCheckBox.isSelected()) {
                 regexCheckBox.setSelected(false);
@@ -119,12 +120,12 @@ public class SpreadsheetSearchPanel extends JPanel {
         JPanel searchPanel = new JPanel(new MigLayout("insets 0", "[grow]", "[]"));
         searchPanel.add(new JLabel("Search Terms (one per line):"), "wrap");
         searchPanel.add(new JScrollPane(searchTextArea), "grow, wrap");
-        
+
         // Path list panel
         JPanel pathPanel = new JPanel(new MigLayout("insets 0", "[grow][]", "[][]"));
         pathPanel.add(new JLabel("Search Locations:"), "wrap");
         pathPanel.add(new JScrollPane(pathList), "grow, span 1 2");
-        
+
         JPanel buttonPanel = new JPanel(new MigLayout("insets 0", "[]", "[][]"));
         buttonPanel.add(addDirectoryButton, "wrap");
         buttonPanel.add(addFilesButton, "wrap");
@@ -150,7 +151,7 @@ public class SpreadsheetSearchPanel extends JPanel {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         chooser.setDialogTitle("Select Directory to Search");
-        
+
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File dir = chooser.getSelectedFile();
             addSearchPath(dir.toPath());
@@ -173,7 +174,7 @@ public class SpreadsheetSearchPanel extends JPanel {
                 return "Spreadsheet Files (*.csv, *.xlsx, *.xls)";
             }
         });
-        
+
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             for (File file : chooser.getSelectedFiles()) {
                 addSearchPath(file.toPath());
@@ -198,14 +199,14 @@ public class SpreadsheetSearchPanel extends JPanel {
     private void startSearch() {
         String[] searchTerms = searchTextArea.getText().trim().split("\\n");
         if (searchTerms.length == 0 || searchTerms[0].isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please enter at least one search term", 
-                "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Please enter at least one search term",
+                    "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
+
         if (searchPaths.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please add at least one search location", 
-                "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Please add at least one search location",
+                    "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -216,8 +217,8 @@ public class SpreadsheetSearchPanel extends JPanel {
                     Pattern.compile(term);
                 }
             } catch (PatternSyntaxException e) {
-                JOptionPane.showMessageDialog(this, "Invalid regular expression: " + e.getMessage(), 
-                    "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Invalid regular expression: " + e.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
         }
@@ -225,16 +226,16 @@ public class SpreadsheetSearchPanel extends JPanel {
         // Clear previous results
         tableModel.setRowCount(0);
         statusLabel.setText(" ");
-        
+
         // Disable controls during search
         setControlsEnabled(false);
-        
+
         // Start search in background
         currentSearch = new SearchWorker(
-            searchTerms,
-            new ArrayList<>(searchPaths),
-            exactMatchCheckBox.isSelected(),
-            regexCheckBox.isSelected()
+                searchTerms,
+                new ArrayList<>(searchPaths),
+                exactMatchCheckBox.isSelected(),
+                regexCheckBox.isSelected()
         );
         currentSearch.execute();
     }
@@ -251,22 +252,41 @@ public class SpreadsheetSearchPanel extends JPanel {
         progressBar.setIndeterminate(!enabled);
     }
 
+    private static class SearchResult {
+        final String fileName;
+        final String sheetName;
+        final int row;
+        final int column;
+        final String content;
+        final String searchTerm;
+
+        SearchResult(String fileName, String sheetName, int row, int column,
+                     String content, String searchTerm) {
+            this.fileName = fileName;
+            this.sheetName = sheetName;
+            this.row = row;
+            this.column = column;
+            this.content = content;
+            this.searchTerm = searchTerm;
+        }
+    }
+
     private class SearchWorker extends SwingWorker<Void, SearchResult> {
         private final String[] searchTerms;
         private final List<Path> searchPaths;
         private final boolean exactMatch;
         private final boolean useRegex;
+        private final Pattern[] patterns;
         private int filesProcessed = 0;
         private int totalMatches = 0;
-        private final Pattern[] patterns;
 
-        public SearchWorker(String[] searchTerms, List<Path> searchPaths, 
-                          boolean exactMatch, boolean useRegex) {
+        public SearchWorker(String[] searchTerms, List<Path> searchPaths,
+                            boolean exactMatch, boolean useRegex) {
             this.searchTerms = searchTerms;
             this.searchPaths = searchPaths;
             this.exactMatch = exactMatch;
             this.useRegex = useRegex;
-            
+
             if (useRegex) {
                 patterns = new Pattern[searchTerms.length];
                 for (int i = 0; i < searchTerms.length; i++) {
@@ -286,8 +306,8 @@ public class SpreadsheetSearchPanel extends JPanel {
                             @Override
                             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                                 String fileName = file.toString().toLowerCase();
-                                if (fileName.endsWith(".csv") || fileName.endsWith(".xlsx") || 
-                                    fileName.endsWith(".xls")) {
+                                if (fileName.endsWith(".csv") || fileName.endsWith(".xlsx") ||
+                                        fileName.endsWith(".xls")) {
                                     searchFile(file.toFile());
                                     filesProcessed++;
                                     updateProgress();
@@ -302,11 +322,11 @@ public class SpreadsheetSearchPanel extends JPanel {
                     }
                 }
             } catch (IOException e) {
-                SwingUtilities.invokeLater(() -> 
-                    JOptionPane.showMessageDialog(SpreadsheetSearchPanel.this,
-                        "Error searching files: " + e.getMessage(),
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE));
+                SwingUtilities.invokeLater(() ->
+                        JOptionPane.showMessageDialog(SpreadsheetSearchPanel.this,
+                                "Error searching files: " + e.getMessage(),
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE));
             }
             return null;
         }
@@ -344,8 +364,8 @@ public class SpreadsheetSearchPanel extends JPanel {
         private void searchExcelFile(File file) throws IOException {
             try (FileInputStream fis = new FileInputStream(file);
                  Workbook workbook = file.getName().toLowerCase().endsWith(".xlsx") ?
-                     new XSSFWorkbook(fis) : new HSSFWorkbook(fis)) {
-                
+                         new XSSFWorkbook(fis) : new HSSFWorkbook(fis)) {
+
                 for (int sheetIndex = 0; sheetIndex < workbook.getNumberOfSheets(); sheetIndex++) {
                     Sheet sheet = workbook.getSheetAt(sheetIndex);
                     for (Row row : sheet) {
@@ -353,7 +373,7 @@ public class SpreadsheetSearchPanel extends JPanel {
                             String cellContent = getCellContentAsString(cell);
                             if (cellContent != null) {
                                 checkMatches(file.getName(), sheet.getSheetName(),
-                                    row.getRowNum() + 1, cell.getColumnIndex() + 1, cellContent);
+                                        row.getRowNum() + 1, cell.getColumnIndex() + 1, cellContent);
                             }
                         }
                     }
@@ -365,12 +385,12 @@ public class SpreadsheetSearchPanel extends JPanel {
             for (int i = 0; i < searchTerms.length; i++) {
                 if (matches(cellContent, i)) {
                     publish(new SearchResult(
-                        fileName,
-                        sheetName,
-                        row,
-                        col,
-                        cellContent,
-                        searchTerms[i]
+                            fileName,
+                            sheetName,
+                            row,
+                            col,
+                            cellContent,
+                            searchTerms[i]
                     ));
                     totalMatches++;
                 }
@@ -379,7 +399,7 @@ public class SpreadsheetSearchPanel extends JPanel {
 
         private String getCellContentAsString(Cell cell) {
             if (cell == null) return null;
-            
+
             switch (cell.getCellType()) {
                 case STRING:
                     return cell.getStringCellValue();
@@ -416,21 +436,21 @@ public class SpreadsheetSearchPanel extends JPanel {
         }
 
         private void updateProgress() {
-            SwingUtilities.invokeLater(() -> 
-                statusLabel.setText(String.format("Processed %d files, found %d matches", 
-                    filesProcessed, totalMatches)));
+            SwingUtilities.invokeLater(() ->
+                    statusLabel.setText(String.format("Processed %d files, found %d matches",
+                            filesProcessed, totalMatches)));
         }
 
         @Override
         protected void process(List<SearchResult> chunks) {
             for (SearchResult result : chunks) {
                 tableModel.addRow(new Object[]{
-                    result.fileName,
-                    result.sheetName,
-                    result.row,
-                    result.column,
-                    result.content,
-                    result.searchTerm
+                        result.fileName,
+                        result.sheetName,
+                        result.row,
+                        result.column,
+                        result.content,
+                        result.searchTerm
                 });
             }
         }
@@ -439,27 +459,8 @@ public class SpreadsheetSearchPanel extends JPanel {
         protected void done() {
             setControlsEnabled(true);
             progressBar.setIndeterminate(false);
-            statusLabel.setText(String.format("Search complete. Processed %d files, found %d matches", 
-                filesProcessed, totalMatches));
-        }
-    }
-
-    private static class SearchResult {
-        final String fileName;
-        final String sheetName;
-        final int row;
-        final int column;
-        final String content;
-        final String searchTerm;
-
-        SearchResult(String fileName, String sheetName, int row, int column, 
-                    String content, String searchTerm) {
-            this.fileName = fileName;
-            this.sheetName = sheetName;
-            this.row = row;
-            this.column = column;
-            this.content = content;
-            this.searchTerm = searchTerm;
+            statusLabel.setText(String.format("Search complete. Processed %d files, found %d matches",
+                    filesProcessed, totalMatches));
         }
     }
 }

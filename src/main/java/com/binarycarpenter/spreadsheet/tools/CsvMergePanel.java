@@ -20,7 +20,7 @@ public class CsvMergePanel extends JPanel {
     private final JButton csvMergeButton;
     private final JButton excelMergeButton;
     private final CsvMerger merger = new CsvMerger();
-    
+
     public CsvMergePanel() {
         setLayout(new BorderLayout(10, 10));
         setBorder(new EmptyBorder(20, 20, 20, 20));
@@ -48,15 +48,15 @@ public class CsvMergePanel extends JPanel {
         JButton addButton = new JButton("Add Files");
         addButton.setIcon(UIManager.getIcon("FileView.directoryIcon"));
         addButton.addActionListener(e -> addFiles());
-        
+
         JButton removeButton = new JButton("Remove Selected");
         removeButton.setIcon(UIManager.getIcon("FileView.fileIcon"));
         removeButton.addActionListener(e -> removeSelectedFiles());
-        
+
         JButton clearButton = new JButton("Clear All");
         clearButton.setIcon(UIManager.getIcon("FileView.fileIcon"));
         clearButton.addActionListener(e -> clearFiles());
-        
+
         buttonPanel.add(addButton);
         buttonPanel.add(removeButton);
         buttonPanel.add(clearButton);
@@ -74,12 +74,12 @@ public class CsvMergePanel extends JPanel {
         csvMergeButton.setIcon(UIManager.getIcon("FileView.hardDriveIcon"));
         csvMergeButton.setEnabled(false);
         csvMergeButton.addActionListener(e -> mergeToCsv());
-        
+
         excelMergeButton = new JButton("Merge to Excel");
         excelMergeButton.setIcon(UIManager.getIcon("FileView.hardDriveIcon"));
         excelMergeButton.setEnabled(false);
         excelMergeButton.addActionListener(e -> mergeToExcel());
-        
+
         mergePanel.add(csvMergeButton);
         mergePanel.add(excelMergeButton);
         filePanel.add(mergePanel, BorderLayout.SOUTH);
@@ -100,13 +100,13 @@ public class CsvMergePanel extends JPanel {
     private JPanel createCsvPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(new EmptyBorder(10, 10, 10, 10));
-        
+
         JPanel infoPanel = new JPanel(new MigLayout("fillx, wrap 1", "[grow]"));
         infoPanel.add(new JLabel("<html><b>CSV Merge Options</b></html>"), "wrap");
         infoPanel.add(new JLabel("<html>Merge multiple CSV files into a single CSV file.<br/>" +
                 "If headers match, data will be appended sequentially.<br/>" +
                 "If headers differ, missing columns will be filled with empty values.</html>"), "wrap");
-        
+
         panel.add(infoPanel, BorderLayout.NORTH);
         return panel;
     }
@@ -114,13 +114,13 @@ public class CsvMergePanel extends JPanel {
     private JPanel createExcelPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(new EmptyBorder(10, 10, 10, 10));
-        
+
         JPanel infoPanel = new JPanel(new MigLayout("fillx, wrap 1", "[grow]"));
         infoPanel.add(new JLabel("<html><b>Excel Merge Options</b></html>"), "wrap");
         infoPanel.add(new JLabel("<html>Merge multiple CSV files into a single Excel workbook.<br/>" +
                 "Each CSV file will be placed in a separate worksheet.<br/>" +
                 "Sheet names will be based on CSV file names.</html>"), "wrap");
-        
+
         panel.add(infoPanel, BorderLayout.NORTH);
         return panel;
     }
@@ -132,6 +132,7 @@ public class CsvMergePanel extends JPanel {
             public boolean accept(File f) {
                 return f.isDirectory() || f.getName().toLowerCase().endsWith(".csv");
             }
+
             public String getDescription() {
                 return "CSV Files (*.csv)";
             }
@@ -182,27 +183,27 @@ public class CsvMergePanel extends JPanel {
         try {
             // Analyze headers first
             CsvMerger.MergeResult mergeResult = merger.analyzeHeaders(selectedFiles);
-            
+
             // If headers don't match, show warning
             if (!mergeResult.isHeadersMatch()) {
                 StringBuilder message = new StringBuilder();
                 message.append("The selected files have different headers:\n\n");
-                
+
                 for (Map.Entry<File, List<String>> entry : mergeResult.getMissingHeadersByFile().entrySet()) {
                     message.append(entry.getKey().getName())
-                           .append(" is missing headers: ")
-                           .append(String.join(", ", entry.getValue()))
-                           .append("\n");
+                            .append(" is missing headers: ")
+                            .append(String.join(", ", entry.getValue()))
+                            .append("\n");
                 }
-                
+
                 message.append("\nDo you want to proceed? Missing values will be left empty.");
-                
+
                 int result = JOptionPane.showConfirmDialog(this,
                         message.toString(),
                         "Header Mismatch",
                         JOptionPane.YES_NO_OPTION,
                         JOptionPane.WARNING_MESSAGE);
-                
+
                 if (result != JOptionPane.YES_OPTION) {
                     return;
                 }
@@ -214,6 +215,7 @@ public class CsvMergePanel extends JPanel {
                 public boolean accept(File f) {
                     return f.isDirectory() || f.getName().toLowerCase().endsWith(".csv");
                 }
+
                 public String getDescription() {
                     return "CSV Files (*.csv)";
                 }
@@ -227,11 +229,11 @@ public class CsvMergePanel extends JPanel {
 
                 // Perform merge
                 merger.mergeFiles(selectedFiles, outputFile, mergeResult);
-                
+
                 logArea.append("Successfully merged files to: " + outputFile.getName() + "\n");
                 logArea.append("Total headers in output: " + mergeResult.getCombinedHeaders().size() + "\n");
                 logArea.append("Headers: " + String.join(", ", mergeResult.getCombinedHeaders()) + "\n\n");
-                
+
                 // Show success message
                 JOptionPane.showMessageDialog(this,
                         "Files merged successfully!\nOutput file: " + outputFile.getName(),
@@ -262,6 +264,7 @@ public class CsvMergePanel extends JPanel {
             public boolean accept(File f) {
                 return f.isDirectory() || f.getName().toLowerCase().endsWith(".xlsx");
             }
+
             public String getDescription() {
                 return "Excel Files (*.xlsx)";
             }
@@ -276,14 +279,14 @@ public class CsvMergePanel extends JPanel {
             try {
                 // Perform merge
                 merger.mergeToExcel(selectedFiles, outputFile);
-                
+
                 logArea.append("Successfully merged files to Excel: " + outputFile.getName() + "\n");
                 logArea.append("Created " + selectedFiles.size() + " worksheets:\n");
                 for (File file : selectedFiles) {
                     logArea.append("- " + file.getName() + "\n");
                 }
                 logArea.append("\n");
-                
+
                 // Show success message
                 JOptionPane.showMessageDialog(this,
                         "Files merged successfully!\nOutput file: " + outputFile.getName(),

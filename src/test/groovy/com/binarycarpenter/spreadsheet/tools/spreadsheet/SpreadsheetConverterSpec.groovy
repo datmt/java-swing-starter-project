@@ -63,9 +63,9 @@ class SpreadsheetConverterSpec extends Specification {
         SpreadsheetConverter.normalizeFileName(input) == expected
 
         where:
-        input             | expected
-        "Test File.csv"   | "test_file.csv"
-        "test.csv"        | "test.csv"
+        input           | expected
+        "Test File.csv" | "test_file.csv"
+        "test.csv"      | "test.csv"
     }
 
     def "should handle invalid input file"() {
