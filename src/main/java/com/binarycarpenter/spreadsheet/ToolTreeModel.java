@@ -34,7 +34,7 @@ public class ToolTreeModel extends DefaultTreeModel {
         jsonCategory.addChild(jsonToCsvTool);
 
         // Create CSV/Spreadsheet category
-        Tool csvCategory = new Tool("CSV/Spreadsheet Tools", new JPanel(), true);
+        Tool csvCategory = new Tool("Spreadsheet Tools", new JPanel(), true);
 
         // Create CSV Mapping tool with its panel
         Tool csvMappingTool = new Tool("CSV Mapping", new CsvMappingPanel());
