@@ -44,6 +44,10 @@ public class ToolTreeModel extends DefaultTreeModel {
         Tool csvEditorTool = new Tool("CSV Editor", CsvEditorPanel::new, false);
         csvCategory.addChild(csvEditorTool);
 
+        // Create Excel Editor tool with lazy initialization
+        Tool excelEditorTool = new Tool("Excel Editor", ExcelEditorPanel::new, false);
+        csvCategory.addChild(excelEditorTool);
+
         // Create CSV Merge tool with lazy initialization
         Tool csvMergeTool = new Tool("CSV Merge", CsvMergePanel::new, false);
         csvCategory.addChild(csvMergeTool);
@@ -75,6 +79,7 @@ public class ToolTreeModel extends DefaultTreeModel {
         allTools.add(csvCategory);
         allTools.add(csvMappingTool);
         allTools.add(csvEditorTool);
+        allTools.add(excelEditorTool);
         allTools.add(csvMergeTool);
         allTools.add(csvDiffTool);
         allTools.add(csvRemoveDuplicatesTool);
@@ -85,6 +90,7 @@ public class ToolTreeModel extends DefaultTreeModel {
         toolPanels.put("JSON to CSV", JsonToCsvPanel.class);
         toolPanels.put("CSV Mapping", CsvMappingPanel.class);
         toolPanels.put("CSV Editor", CsvEditorPanel.class);
+        toolPanels.put("Excel Editor", ExcelEditorPanel.class);
         toolPanels.put("CSV Merge", CsvMergePanel.class);
         toolPanels.put("CSV Diff", CsvDiffPanel.class);
         toolPanels.put("Remove Duplicates", RemoveDuplicatesPanel.class);
