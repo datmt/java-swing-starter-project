@@ -144,22 +144,34 @@ public abstract class SpreadsheetEditorPanel extends JPanel {
         exactMatchCheckBox = new JCheckBox("Exact Match");
         regexCheckBox = new JCheckBox("Regex");
 
-        // Add document listener to search field
-        searchField.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                updateSearch();
-            }
+        // Add action listeners
+        findNextButton.addActionListener(e -> {
+            updateSearch();
+            highlightNextMatch();
+        });
 
-            @Override
-            public void removeUpdate(DocumentEvent e) {
+        replaceButton.addActionListener(e -> {
+            if (currentMatchIndex >= 0 && currentMatchIndex < matchingCells.size()) {
+                Point match = matchingCells.get(currentMatchIndex);
+                int viewRow = match.x;
+                if (sorter != null) {
+                    viewRow = table.convertRowIndexToView(match.x);
+                }
+                table.setValueAt(replaceField.getText(), viewRow, match.y);
                 updateSearch();
+                highlightNextMatch();
             }
+        });
 
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                updateSearch();
+        replaceAllButton.addActionListener(e -> {
+            for (Point match : matchingCells) {
+                int viewRow = match.x;
+                if (sorter != null) {
+                    viewRow = table.convertRowIndexToView(match.x);
+                }
+                table.setValueAt(replaceField.getText(), viewRow, match.y);
             }
+            updateSearch();
         });
 
         // Add components to panel
