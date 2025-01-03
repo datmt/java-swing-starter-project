@@ -913,78 +913,105 @@ public class CsvEditorPanel extends JPanel {
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-        // List to keep track of filter conditions
-        List<FilterCondition> filterConditions = new ArrayList<>();
-
-        // Restore previous filters if any
-        for (FilterState state : currentFilters) {
-            FilterCondition condition = new FilterCondition(getColumnNames());
-            condition.setValues(state.column, state.operator, state.value);
-            filterConditions.add(condition);
-            conditionsPanel.add(condition);
-            condition.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // Add existing filter conditions
+        DefaultTableModel model = (DefaultTableModel) table.getModel();
+        String[] columns = new String[model.getColumnCount()];
+        for (int i = 0; i < model.getColumnCount(); i++) {
+            columns[i] = model.getColumnName(i);
         }
 
-        // Add condition button panel
-        JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
-        JButton addConditionButton = new JButton("Add Condition");
-        addConditionButton.addActionListener(e -> {
-            FilterCondition condition = new FilterCondition(getColumnNames());
-            filterConditions.add(condition);
+        // Add existing filters
+        for (FilterState filter : currentFilters) {
+            FilterCondition condition = new FilterCondition(columns);
             conditionsPanel.add(condition);
-            condition.setAlignmentX(Component.LEFT_ALIGNMENT);
+            condition.columnCombo.setSelectedItem(filter.column);
+            condition.operatorCombo.setSelectedItem(filter.operator);
+            condition.valueField.setText(filter.value);
+        }
+
+        // Button to add new filter condition
+        JButton addButton = new JButton("Add Filter");
+        addButton.addActionListener(e -> {
+            FilterCondition condition = new FilterCondition(columns);
+            conditionsPanel.add(condition);
             conditionsPanel.revalidate();
             conditionsPanel.repaint();
-
-            // Scroll to bottom to show new condition
-            SwingUtilities.invokeLater(() -> {
-                JScrollBar vertical = scrollPane.getVerticalScrollBar();
-                vertical.setValue(vertical.getMaximum());
-            });
         });
-        addButtonPanel.add(addConditionButton);
 
-        // Control buttons panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 5));
+        // Button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton applyButton = new JButton("Apply");
-        JButton clearButton = new JButton("Clear");
-        JButton cancelButton = new JButton("Cancel");
+        JButton clearButton = new JButton("Clear All");
+        JButton closeButton = new JButton("Close");
 
         applyButton.addActionListener(e -> {
-            // Save current filters
-            currentFilters.clear();
-            for (FilterCondition condition : filterConditions) {
-                currentFilters.add(new FilterState(
-                        (String) condition.columnCombo.getSelectedItem(),
-                        (String) condition.operatorCombo.getSelectedItem(),
-                        condition.valueField.getText()
-                ));
+            // Get all filter conditions
+            Component[] components = conditionsPanel.getComponents();
+            List<FilterCondition> conditions = new ArrayList<>();
+            for (Component comp : components) {
+                if (comp instanceof FilterCondition) {
+                    conditions.add((FilterCondition) comp);
+                }
             }
-            applyFilters(filterConditions);
+
+            // Clear existing filters
+            currentFilters.clear();
+
+            // Create a new row filter that combines all conditions
+            RowFilter<DefaultTableModel, Integer> filter = new RowFilter<>() {
+                @Override
+                public boolean include(Entry<? extends DefaultTableModel, ? extends Integer> entry) {
+                    // If no conditions, show all rows
+                    if (conditions.isEmpty()) {
+                        return true;
+                    }
+
+                    // All conditions must be met (AND logic)
+                    for (FilterCondition condition : conditions) {
+                        if (!condition.evaluate(entry)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            };
+
+            // Apply the filter
+            sorter.setRowFilter(filter);
+
+            // Update the filter list
+            for (FilterCondition condition : conditions) {
+                if (!condition.valueField.getText().trim().isEmpty()) {
+                    currentFilters.add(new FilterState(
+                            (String) condition.columnCombo.getSelectedItem(),
+                            (String) condition.operatorCombo.getSelectedItem(),
+                            condition.valueField.getText().trim()
+                    ));
+                }
+            }
+
             dialog.dispose();
         });
 
         clearButton.addActionListener(e -> {
-            filterConditions.clear();
-            currentFilters.clear();
             conditionsPanel.removeAll();
             conditionsPanel.revalidate();
             conditionsPanel.repaint();
+            currentFilters.clear();
             sorter.setRowFilter(null);
-            table.repaint();
         });
 
-        cancelButton.addActionListener(e -> dialog.dispose());
+        closeButton.addActionListener(e -> dialog.dispose());
 
+        buttonPanel.add(addButton);
         buttonPanel.add(applyButton);
         buttonPanel.add(clearButton);
-        buttonPanel.add(cancelButton);
+        buttonPanel.add(closeButton);
 
-        // Add components to dialog
-        dialog.add(addButtonPanel, BorderLayout.NORTH);
-        dialog.add(scrollPane, BorderLayout.CENTER);
-        dialog.add(buttonPanel, BorderLayout.SOUTH);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
+        dialog.add(mainPanel);
         dialog.pack();
         dialog.setLocationRelativeTo(this);
         dialog.setVisible(true);
@@ -1008,6 +1035,12 @@ public class CsvEditorPanel extends JPanel {
         RowFilter<DefaultTableModel, Integer> filter = new RowFilter<>() {
             @Override
             public boolean include(Entry<? extends DefaultTableModel, ? extends Integer> entry) {
+                // If no conditions, show all rows
+                if (conditions.isEmpty()) {
+                    return true;
+                }
+
+                // All conditions must be met (AND logic)
                 for (FilterCondition condition : conditions) {
                     if (!condition.evaluate(entry)) {
                         return false;
@@ -1125,17 +1158,26 @@ public class CsvEditorPanel extends JPanel {
             valueField.setPreferredSize(new Dimension(200, 28));
             removeButton.setPreferredSize(buttonSize);
 
-            removeButton.addActionListener(e -> {
-                Container parent = getParent();
-                parent.remove(this);
-                parent.revalidate();
-                parent.repaint();
-            });
+            // Style the remove button
+            removeButton.setFont(new Font("Arial", Font.PLAIN, 18));
+            removeButton.setForeground(Color.RED);
+            removeButton.setFocusPainted(false);
+            removeButton.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 
+            // Add components
             add(columnCombo);
             add(operatorCombo);
             add(valueField);
             add(removeButton);
+
+            removeButton.addActionListener(e -> {
+                Container parent = getParent();
+                if (parent != null) {
+                    parent.remove(this);
+                    parent.revalidate();
+                    parent.repaint();
+                }
+            });
         }
 
         public void setValues(String column, String operator, String value) {
@@ -1172,29 +1214,26 @@ public class CsvEditorPanel extends JPanel {
 
                 case "Greater Than":
                     try {
-                        double cellNum = Double.parseDouble(cellValue.replaceAll("[^\\d.-]", ""));
-                        double filterNum = Double.parseDouble(filterValue.replaceAll("[^\\d.-]", ""));
-                        return cellNum > filterNum;
+                        double cellNumber = Double.parseDouble(cellValue);
+                        double filterNumber = Double.parseDouble(filterValue);
+                        return cellNumber > filterNumber;
                     } catch (NumberFormatException e) {
-                        // If not numeric, do string comparison
-                        return cellValue.compareToIgnoreCase(filterValue) > 0;
+                        return false;
                     }
 
                 case "Less Than":
                     try {
-                        double cellNum = Double.parseDouble(cellValue.replaceAll("[^\\d.-]", ""));
-                        double filterNum = Double.parseDouble(filterValue.replaceAll("[^\\d.-]", ""));
-                        return cellNum < filterNum;
+                        double cellNumber = Double.parseDouble(cellValue);
+                        double filterNumber = Double.parseDouble(filterValue);
+                        return cellNumber < filterNumber;
                     } catch (NumberFormatException e) {
-                        // If not numeric, do string comparison
-                        return cellValue.compareToIgnoreCase(filterValue) < 0;
+                        return false;
                     }
 
                 case "Regex Match":
                     try {
                         return cellValue.matches(filterValue);
-                    } catch (java.util.regex.PatternSyntaxException e) {
-                        // If invalid regex, treat as no match
+                    } catch (Exception e) {
                         return false;
                     }
 
