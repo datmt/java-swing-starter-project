@@ -68,9 +68,6 @@ public class ToolTreeModel extends DefaultTreeModel {
         Tool xlsToCsvTool = new Tool("XLS(X) to CSV", XlsToCsvPanel::new, false);
         csvCategory.addChild(xlsToCsvTool);
 
-        // Create Remove Duplicates tool with lazy initialization
-        Tool xlsRemoveDuplicatesTool = new Tool("Remove Duplicates", RemoveDuplicatesPanel::new, false);
-        csvCategory.addChild(xlsRemoveDuplicatesTool);
 
         // Add to all tools list
         allTools.add(jsonCategory);
@@ -84,8 +81,6 @@ public class ToolTreeModel extends DefaultTreeModel {
         allTools.add(spreadsheetSearchTool);
         allTools.add(spreadsheetSearchReplaceTool);
         allTools.add(xlsToCsvTool);
-        allTools.add(xlsRemoveDuplicatesTool);
-
         // Add to tool panels map
         toolPanels.put("JSON to CSV", JsonToCsvPanel.class);
         toolPanels.put("CSV Mapping", CsvMappingPanel.class);
