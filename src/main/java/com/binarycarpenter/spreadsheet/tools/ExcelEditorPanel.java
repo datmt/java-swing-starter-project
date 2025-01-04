@@ -1,6 +1,7 @@
 package com.binarycarpenter.spreadsheet.tools;
 
 import com.binarycarpenter.spreadsheet.tools.base.SpreadsheetEditorPanel;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.miginfocom.swing.MigLayout;
 import org.apache.poi.ss.usermodel.*;
@@ -28,6 +29,7 @@ public class ExcelEditorPanel extends SpreadsheetEditorPanel {
     private Workbook currentWorkbook;
     private List<Sheet> sheets;
     private int currentSheetIndex = 0;
+    @Getter
     private JComboBox<String> sheetSelector;
 
     public ExcelEditorPanel() {
@@ -298,18 +300,29 @@ public class ExcelEditorPanel extends SpreadsheetEditorPanel {
 
             // Create header row
             Row headerRow = newSheet.createRow(0);
-            for (int i = 0; i < model.getColumnCount(); i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(model.getColumnName(i));
+            Row firstDataRow = currentWorkbook.getSheetAt(currentSheetIndex).getRow(0);
+            if (firstDataRow != null) {
+                for (int j = 0; j < firstDataRow.getLastCellNum(); j++) {
+                    Cell newCell = headerRow.createCell(j);
+                    Cell sourceCell = firstDataRow.getCell(j);
+                    if (sourceCell != null) {
+                        copyCellValue(sourceCell, newCell);
+                    }
+                }
             }
 
-            // Create data rows
-            for (int i = 0; i < model.getRowCount(); i++) {
-                Row row = newSheet.createRow(i + 1);
-                for (int j = 0; j < model.getColumnCount(); j++) {
-                    Cell cell = row.createCell(j);
-                    Object value = model.getValueAt(i, j);
-                    setCellValue(cell, value);
+            // Create data rows starting from row 1
+            for (int i = 1; i < model.getRowCount(); i++) {
+                Row row = newSheet.createRow(i);
+                Row sourceRow = currentWorkbook.getSheetAt(currentSheetIndex).getRow(i);
+                if (sourceRow != null) {
+                    for (int j = 0; j < sourceRow.getLastCellNum(); j++) {
+                        Cell sourceCell = sourceRow.getCell(j);
+                        if (sourceCell != null) {
+                            Cell newCell = row.createCell(j);
+                            copyCellValue(sourceCell, newCell);
+                        }
+                    }
                 }
             }
 
@@ -324,6 +337,31 @@ public class ExcelEditorPanel extends SpreadsheetEditorPanel {
                     "Error exporting file: " + e.getMessage(),
                     "Error",
                     JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void copyCellValue(Cell sourceCell, Cell targetCell) {
+        switch (sourceCell.getCellType()) {
+            case STRING:
+                targetCell.setCellValue(sourceCell.getStringCellValue());
+                break;
+            case NUMERIC:
+                if (DateUtil.isCellDateFormatted(sourceCell)) {
+                    targetCell.setCellValue(sourceCell.getDateCellValue());
+                } else {
+                    targetCell.setCellValue(sourceCell.getNumericCellValue());
+                }
+                break;
+            case BOOLEAN:
+                targetCell.setCellValue(sourceCell.getBooleanCellValue());
+                break;
+            case FORMULA:
+                targetCell.setCellValue(sourceCell.getNumericCellValue()); // Use the evaluated value instead of formula
+                break;
+            case BLANK:
+            default:
+                targetCell.setBlank();
+                break;
         }
     }
 

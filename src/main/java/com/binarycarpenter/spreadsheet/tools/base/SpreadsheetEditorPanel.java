@@ -2,6 +2,7 @@ package com.binarycarpenter.spreadsheet.tools.base;
 
 import com.binarycarpenter.spreadsheet.utils.Icons;
 import lombok.Getter;
+import lombok.Setter;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
@@ -18,10 +19,13 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 public abstract class SpreadsheetEditorPanel extends JPanel {
+    @Getter
     protected JTable table;
     protected JTextArea textArea;
     protected CardLayout cardLayout;
     protected JPanel contentPanel;
+    @Getter
+    @Setter
     protected File currentFile;
     protected boolean isSpreadsheetMode = true;
     protected JTextField searchField;

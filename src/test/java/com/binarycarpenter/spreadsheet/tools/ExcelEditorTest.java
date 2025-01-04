@@ -63,7 +63,7 @@ class ExcelEditorTest {
         editor.loadFile(testFile);
         
         // Get the table model
-        DefaultTableModel model = (DefaultTableModel) editor.table.getModel();
+        DefaultTableModel model = (DefaultTableModel) editor.getTable().getModel();
         
         // Verify column count
         assertThat(model.getColumnCount()).isEqualTo(3);
@@ -92,13 +92,13 @@ class ExcelEditorTest {
         editor.loadFile(testFile);
         
         // Modify some values
-        DefaultTableModel model = (DefaultTableModel) editor.table.getModel();
+        DefaultTableModel model = (DefaultTableModel) editor.getTable().getModel();
         model.setValueAt("Modified", 1, 0);
         model.setValueAt(35.0, 1, 1);
         
         // Save to a new file
         File savedFile = tempDir.resolve("saved.xlsx").toFile();
-        editor.currentFile = savedFile;
+        editor.setCurrentFile(savedFile);
         editor.saveFile();
         
         // Verify the saved file
@@ -115,15 +115,15 @@ class ExcelEditorTest {
         editor.loadFile(testFile);
         
         // Verify sheet count
-        assertThat(editor.sheetSelector.getItemCount()).isEqualTo(2);
-        assertThat(editor.sheetSelector.getItemAt(0)).isEqualTo("Sheet1");
-        assertThat(editor.sheetSelector.getItemAt(1)).isEqualTo("Sheet2");
+        assertThat(editor.getSheetSelector().getItemCount()).isEqualTo(2);
+        assertThat(editor.getSheetSelector().getItemAt(0)).isEqualTo("Sheet1");
+        assertThat(editor.getSheetSelector().getItemAt(1)).isEqualTo("Sheet2");
         
         // Switch to second sheet
-        editor.sheetSelector.setSelectedIndex(1);
+        editor.getSheetSelector().setSelectedIndex(1);
         
         // Verify second sheet content
-        DefaultTableModel model = (DefaultTableModel) editor.table.getModel();
+        DefaultTableModel model = (DefaultTableModel) editor.getTable().getModel();
         assertThat(model.getValueAt(0, 0)).isEqualTo("Test");
     }
     
