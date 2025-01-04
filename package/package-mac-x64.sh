@@ -11,13 +11,13 @@ jpackage \
   --input target \
   --name "BC18 Spreadsheet Tools" \
   --main-jar bc-spreadsheet-jar-with-dependencies.jar \
-  --main-class com.toolbox.MainApp \
+  --main-class com.binarycarpenter.spreadsheet.MainApp \
   --type dmg \
   --icon src/main/resources/icons/app.icns \
   --app-version "1.0" \
   --vendor "Your Company" \
   --copyright "Copyright 2024" \
-  --mac-package-identifier com.toolbox.desktoptools \
+  --mac-package-identifier com.binarycarpenter.spreadsheet.desktoptools \
   --mac-package-name "BC18-ST" \
   --java-options "-Xmx2048m" \
   --java-options "--enable-preview"

@@ -11,7 +11,7 @@ jpackage \
   --input target \
   --name "desktop-tools" \
   --main-jar bc-spreadsheet-jar-with-dependencies.jar \
-  --main-class com.toolbox.MainApp \
+  --main-class com.binarycarpenter.spreadsheet.MainApp \
   --type deb \
   --icon src/main/resources/icons/app.png \
   --app-version "1.0" \
@@ -29,7 +29,7 @@ jpackage \
   --input target \
   --name "desktop-tools" \
   --main-jar bc-spreadsheet-jar-with-dependencies.jar \
-  --main-class com.toolbox.MainApp \
+  --main-class com.binarycarpenter.spreadsheet.MainApp \
   --type rpm \
   --icon src/main/resources/icons/app.png \
   --app-version "1.0" \
