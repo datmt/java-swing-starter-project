@@ -202,9 +202,11 @@ public class CsvEditorPanel extends JPanel {
 
         matchCaseCheckBox = new JCheckBox("Aa");
         matchCaseCheckBox.setToolTipText("Match Case");
+        matchCaseCheckBox.addActionListener(e -> updateSearch());
 
         exactMatchCheckBox = new JCheckBox("Exact");
         exactMatchCheckBox.setToolTipText("Match Entire Cell Content");
+        exactMatchCheckBox.addActionListener(e -> updateSearch());
 
         regexCheckBox = new JCheckBox(".*");
         regexCheckBox.setToolTipText("Use Regular Expression");
