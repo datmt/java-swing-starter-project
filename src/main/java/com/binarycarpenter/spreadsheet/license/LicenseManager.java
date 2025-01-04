@@ -15,7 +15,7 @@ import java.util.prefs.Preferences;
 
 @Slf4j
 public class LicenseManager {
-    private static final String VERSION_NUMBER = "73"; // Version 1.0.0.0
+    private static final String VERSION_NUMBER = "74"; // Version 1.0.0.0
     private static final String ACTIVATION_URL = "https://api.gotkey.io/public/activate/30837999853190265244496741031/14346c08-0020-4bba-bbdb-f1f1fae14f8f/30838361981223176236704514728";
     private static final String PREF_LICENSE_KEY = "licenseKey";
     private static final String PREF_ACTIVATION_STATUS = "activationStatus";
