@@ -10,7 +10,7 @@ mvn clean package
 jpackage \
   --input target \
   --name "desktop-tools" \
-  --main-jar desktop-tools-app-1.0-jar-with-dependencies.jar \
+  --main-jar bc-spreadsheet-jar-with-dependencies.jar \
   --main-class com.toolbox.MainApp \
   --type deb \
   --icon src/main/resources/icons/app.png \
@@ -28,7 +28,7 @@ jpackage \
 jpackage \
   --input target \
   --name "desktop-tools" \
-  --main-jar desktop-tools-app-1.0-jar-with-dependencies.jar \
+  --main-jar bc-spreadsheet-jar-with-dependencies.jar \
   --main-class com.toolbox.MainApp \
   --type rpm \
   --icon src/main/resources/icons/app.png \

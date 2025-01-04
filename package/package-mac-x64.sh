@@ -10,7 +10,7 @@ mvn clean package
 jpackage \
   --input target \
   --name "BC18 Spreadsheet Tools" \
-  --main-jar desktop-tools-app-1.0-jar-with-dependencies.jar \
+  --main-jar bc-spreadsheet-jar-with-dependencies.jar \
   --main-class com.toolbox.MainApp \
   --type dmg \
   --icon src/main/resources/icons/app.icns \
