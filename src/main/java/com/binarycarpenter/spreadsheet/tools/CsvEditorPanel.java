@@ -47,6 +47,7 @@ public class CsvEditorPanel extends JPanel {
     private boolean isProcessing = false;
     private TableRowSorter<DefaultTableModel> sorter;
     private List<FilterState> currentFilters = new ArrayList<>();  // Store current filters
+    private JLabel matchCountLabel;
 
     public CsvEditorPanel() {
         setLayout(new BorderLayout(0, 0));
@@ -179,7 +180,7 @@ public class CsvEditorPanel extends JPanel {
         viewModeButton.addActionListener(e -> toggleViewMode(viewModeButton));
 
         // Search and Replace Panel
-        JPanel searchPanel = new JPanel(new MigLayout("insets 0, gap 2", "[][grow][]2[]", "[]2[]"));
+        JPanel searchPanel = new JPanel(new MigLayout("insets 0, gap 2", "[][grow][]2[]", "[]2[]10[]"));
 
         searchField = new JTextField(20);
         replaceField = new JTextField(20);
@@ -209,6 +210,9 @@ public class CsvEditorPanel extends JPanel {
         regexCheckBox.setToolTipText("Use Regular Expression");
         regexCheckBox.addActionListener(e -> updateSearch());
 
+        matchCountLabel = new JLabel("No matches");
+        matchCountLabel.setForeground(new Color(51, 51, 51)); // Dark gray, almost black
+
         // First row: file controls and view mode
         topPanel.add(openButton, "cell 0 0");
         topPanel.add(saveButton, "cell 1 0");
@@ -228,7 +232,9 @@ public class CsvEditorPanel extends JPanel {
         searchPanel.add(new JLabel("Replace:"), "");
         searchPanel.add(replaceField, "growx");
         searchPanel.add(replaceButton, "split 2");
-        searchPanel.add(replaceAllButton, "");
+        searchPanel.add(replaceAllButton, "wrap");
+
+        searchPanel.add(matchCountLabel, "span, gapleft 10");
 
         topPanel.add(searchPanel, "cell 0 1 6 1, growx");
 
@@ -352,31 +358,28 @@ public class CsvEditorPanel extends JPanel {
     private void updateSearch() {
         matchingCells.clear();
         currentMatchIndex = -1;
-        String searchText = searchField.getText();
 
+        String searchText = searchField.getText();
         if (searchText.isEmpty()) {
+            matchCountLabel.setText("No matches");
             table.repaint();
             return;
         }
 
         DefaultTableModel model = (DefaultTableModel) table.getModel();
-        boolean caseSensitive = matchCaseCheckBox.isSelected();
+        boolean matchCase = matchCaseCheckBox.isSelected();
         boolean exactMatch = exactMatchCheckBox.isSelected();
         boolean useRegex = regexCheckBox.isSelected();
 
         Pattern pattern = null;
         if (useRegex) {
             try {
-                pattern = Pattern.compile(searchText, caseSensitive ? 0 : Pattern.CASE_INSENSITIVE);
+                pattern = Pattern.compile(searchText, matchCase ? 0 : Pattern.CASE_INSENSITIVE);
             } catch (Exception e) {
-                showError("Invalid regular expression: " + e.getMessage());
+                matchCountLabel.setText("Invalid regex pattern");
+                table.repaint();
                 return;
             }
-        }
-
-        // Convert search text to lowercase if case insensitive
-        if (!caseSensitive) {
-            searchText = searchText.toLowerCase();
         }
 
         for (int row = 0; row < model.getRowCount(); row++) {
@@ -384,15 +387,18 @@ public class CsvEditorPanel extends JPanel {
                 Object value = model.getValueAt(row, col);
                 if (value != null) {
                     String cellText = value.toString();
-                    String compareText = caseSensitive ? cellText : cellText.toLowerCase();
                     boolean matches = false;
 
-                    if (useRegex) {
+                    if (useRegex && pattern != null) {
                         matches = pattern.matcher(cellText).find();
                     } else if (exactMatch) {
-                        matches = compareText.equals(searchText);
+                        matches = matchCase ? 
+                            cellText.equals(searchText) : 
+                            cellText.equalsIgnoreCase(searchText);
                     } else {
-                        matches = compareText.contains(searchText);
+                        matches = matchCase ? 
+                            cellText.contains(searchText) : 
+                            cellText.toLowerCase().contains(searchText.toLowerCase());
                     }
 
                     if (matches) {
@@ -402,10 +408,15 @@ public class CsvEditorPanel extends JPanel {
             }
         }
 
-        table.repaint();
-        if (!matchingCells.isEmpty()) {
+        int matchCount = matchingCells.size();
+        if (matchCount > 0) {
+            matchCountLabel.setText(String.format("Found %d match%s", matchCount, matchCount == 1 ? "" : "es"));
             findNext();
+        } else {
+            matchCountLabel.setText("No matches found");
         }
+
+        table.repaint();
     }
 
     private void findNext() {
@@ -440,7 +451,10 @@ public class CsvEditorPanel extends JPanel {
                                 matchCaseCheckBox.isSelected() ? 0 : Pattern.CASE_INSENSITIVE);
                         newText = pattern.matcher(cellText).replaceAll(replaceText);
                     } catch (Exception e) {
-                        showError("Invalid regular expression or replacement: " + e.getMessage());
+                        JOptionPane.showMessageDialog(this,
+                                "Invalid regular expression or replacement: " + e.getMessage(),
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
                         return;
                     }
                 } else if (exactMatchCheckBox.isSelected()) {
@@ -485,7 +499,10 @@ public class CsvEditorPanel extends JPanel {
             try {
                 pattern = Pattern.compile(searchText, caseSensitive ? 0 : Pattern.CASE_INSENSITIVE);
             } catch (Exception e) {
-                showError("Invalid regular expression: " + e.getMessage());
+                JOptionPane.showMessageDialog(this,
+                        "Invalid regular expression: " + e.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
                 return;
             }
         }

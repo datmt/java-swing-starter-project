@@ -36,6 +36,7 @@ public abstract class SpreadsheetEditorPanel extends JPanel {
     protected JCheckBox matchCaseCheckBox;
     protected JCheckBox exactMatchCheckBox;
     protected JCheckBox regexCheckBox;
+    protected JLabel matchCountLabel;
     protected List<Point> matchingCells = new ArrayList<>();
     protected int currentMatchIndex = -1;
     protected JProgressBar progressBar;
@@ -147,6 +148,8 @@ public abstract class SpreadsheetEditorPanel extends JPanel {
         matchCaseCheckBox = new JCheckBox("Match Case");
         exactMatchCheckBox = new JCheckBox("Exact Match");
         regexCheckBox = new JCheckBox("Regex");
+        matchCountLabel = new JLabel("No matches");
+        matchCountLabel.setForeground(Color.GRAY);
 
         // Add action listeners
         findNextButton.addActionListener(e -> {
@@ -184,11 +187,14 @@ public abstract class SpreadsheetEditorPanel extends JPanel {
         searchPanel.add(findNextButton, "");
         searchPanel.add(matchCaseCheckBox, "");
         searchPanel.add(exactMatchCheckBox, "wrap");
+        
         searchPanel.add(new JLabel("Replace:"), "");
         searchPanel.add(replaceField, "growx");
         searchPanel.add(replaceButton, "");
         searchPanel.add(replaceAllButton, "");
         searchPanel.add(regexCheckBox, "wrap");
+        
+        searchPanel.add(matchCountLabel, "span, gapleft 10");
 
         return searchPanel;
     }
@@ -234,9 +240,11 @@ public abstract class SpreadsheetEditorPanel extends JPanel {
 
         String searchText = searchField.getText();
         if (searchText.isEmpty()) {
+            matchCountLabel.setText("No matches");
             return;
         }
 
+        TableModel model = table.getModel();
         boolean matchCase = matchCaseCheckBox.isSelected();
         boolean exactMatch = exactMatchCheckBox.isSelected();
         boolean useRegex = regexCheckBox.isSelected();
@@ -246,28 +254,26 @@ public abstract class SpreadsheetEditorPanel extends JPanel {
             try {
                 pattern = Pattern.compile(searchText, matchCase ? 0 : Pattern.CASE_INSENSITIVE);
             } catch (Exception e) {
-                return; // Invalid regex
+                matchCountLabel.setText("Invalid regex pattern");
+                return;
             }
         }
 
-        TableModel model = table.getModel();
         for (int row = 0; row < model.getRowCount(); row++) {
             for (int col = 0; col < model.getColumnCount(); col++) {
                 Object value = model.getValueAt(row, col);
                 if (value != null) {
                     String cellText = value.toString();
-                    boolean matches = false;
+                    boolean matches;
 
                     if (useRegex) {
                         matches = pattern.matcher(cellText).find();
-                    } else if (exactMatch) {
-                        matches = matchCase ? 
-                            cellText.equals(searchText) : 
-                            cellText.equalsIgnoreCase(searchText);
                     } else {
-                        matches = matchCase ? 
-                            cellText.contains(searchText) : 
-                            cellText.toLowerCase().contains(searchText.toLowerCase());
+                        if (!matchCase) {
+                            cellText = cellText.toLowerCase();
+                            searchText = searchText.toLowerCase();
+                        }
+                        matches = exactMatch ? cellText.equals(searchText) : cellText.contains(searchText);
                     }
 
                     if (matches) {
@@ -277,8 +283,12 @@ public abstract class SpreadsheetEditorPanel extends JPanel {
             }
         }
 
-        if (!matchingCells.isEmpty()) {
+        int matchCount = matchingCells.size();
+        if (matchCount > 0) {
+            matchCountLabel.setText(String.format("Found %d match%s", matchCount, matchCount == 1 ? "" : "es"));
             highlightNextMatch();
+        } else {
+            matchCountLabel.setText("No matches found");
         }
     }
 
