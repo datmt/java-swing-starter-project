@@ -121,6 +121,10 @@ public abstract class SpreadsheetEditorPanel extends JPanel {
         exportButton.setToolTipText("Export");
         exportButton.addActionListener(e -> exportFile());
 
+        JButton filterButton = new JButton(Icons.FILTER);
+        filterButton.setToolTipText("Filter Data");
+        filterButton.addActionListener(e -> showFilterDialog());
+
         JToggleButton viewModeButton = new JToggleButton(Icons.EXPORT);
         viewModeButton.setToolTipText("Toggle View Mode");
         viewModeButton.addActionListener(e -> toggleViewMode());
@@ -129,6 +133,7 @@ public abstract class SpreadsheetEditorPanel extends JPanel {
         toolbar.add(openButton);
         toolbar.add(saveButton);
         toolbar.add(exportButton);
+        toolbar.add(filterButton);
         toolbar.addSeparator();
         toolbar.add(viewModeButton);
 
@@ -311,6 +316,235 @@ public abstract class SpreadsheetEditorPanel extends JPanel {
         table.scrollRectToVisible(table.getCellRect(viewRow, viewCol, true));
         table.setRowSelectionInterval(viewRow, viewRow);
         table.setColumnSelectionInterval(viewCol, viewCol);
+    }
+
+    protected void showFilterDialog() {
+        // Get column names
+        List<String> columnNames = new ArrayList<>();
+        TableModel model = table.getModel();
+        for (int i = 0; i < model.getColumnCount(); i++) {
+            columnNames.add(model.getColumnName(i));
+        }
+
+        // Create dialog with proper parent window handling
+        Window window = SwingUtilities.getWindowAncestor(this);
+        JDialog dialog;
+        if (window instanceof Frame) {
+            dialog = new JDialog((Frame) window, "Filter Data", true);
+        } else if (window instanceof Dialog) {
+            dialog = new JDialog((Dialog) window, "Filter Data", true);
+        } else {
+            dialog = new JDialog((Frame) null, "Filter Data", true);
+        }
+        dialog.setLayout(new BorderLayout());
+
+        // Create filter panel
+        JPanel filterPanel = new JPanel();
+        filterPanel.setLayout(new BoxLayout(filterPanel, BoxLayout.Y_AXIS));
+
+        // Create "Add Filter" button
+        JButton addFilterButton = new JButton("Add Filter");
+        addFilterButton.addActionListener(e -> {
+            FilterCondition condition = new FilterCondition(columnNames.toArray(new String[0]));
+            filterPanel.add(condition);
+            filterPanel.revalidate();
+            filterPanel.repaint();
+        });
+
+        // Create buttons panel
+        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton applyButton = new JButton("Apply");
+        JButton clearButton = new JButton("Clear All");
+        buttonsPanel.add(clearButton);
+        buttonsPanel.add(applyButton);
+
+        // Add action listeners
+        clearButton.addActionListener(e -> {
+            filterPanel.removeAll();
+            filterPanel.revalidate();
+            filterPanel.repaint();
+            if (sorter != null) {
+                sorter.setRowFilter(null);
+            }
+            currentFilters.clear();
+            dialog.dispose();
+        });
+
+        applyButton.addActionListener(e -> {
+            List<FilterCondition> conditions = new ArrayList<>();
+            for (Component comp : filterPanel.getComponents()) {
+                if (comp instanceof FilterCondition) {
+                    conditions.add((FilterCondition) comp);
+                }
+            }
+            applyFilters(conditions);
+            dialog.dispose();
+        });
+
+        // Add components to dialog
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topPanel.add(addFilterButton);
+        
+        JScrollPane scrollPane = new JScrollPane(filterPanel);
+        scrollPane.setPreferredSize(new Dimension(500, 300));
+
+        dialog.add(topPanel, BorderLayout.NORTH);
+        dialog.add(scrollPane, BorderLayout.CENTER);
+        dialog.add(buttonsPanel, BorderLayout.SOUTH);
+
+        // Show dialog
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    protected void applyFilters(List<FilterCondition> conditions) {
+        currentFilters.clear();
+        if (conditions.isEmpty()) {
+            if (sorter != null) {
+                sorter.setRowFilter(null);
+            }
+            return;
+        }
+
+        RowFilter<TableModel, Integer> filter = new RowFilter<>() {
+            @Override
+            public boolean include(Entry<? extends TableModel, ? extends Integer> entry) {
+                for (FilterCondition condition : conditions) {
+                    String columnName = condition.getColumnName();
+                    String operator = condition.getOperator();
+                    String value = condition.getValue();
+
+                    // Find column index
+                    int columnIndex = -1;
+                    for (int i = 0; i < entry.getModel().getColumnCount(); i++) {
+                        if (entry.getModel().getColumnName(i).equals(columnName)) {
+                            columnIndex = i;
+                            break;
+                        }
+                    }
+                    if (columnIndex == -1) continue;
+
+                    // Get cell value
+                    Object cellValue = entry.getValue(columnIndex);
+                    if (cellValue == null) return false;
+                    String cellText = cellValue.toString();
+
+                    // Apply filter based on operator
+                    switch (operator) {
+                        case "Equals":
+                            if (!cellText.equals(value)) return false;
+                            break;
+                        case "Contains":
+                            if (!cellText.contains(value)) return false;
+                            break;
+                        case "In List":
+                            boolean found = false;
+                            for (String item : value.split(",")) {
+                                if (cellText.equals(item.trim())) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) return false;
+                            break;
+                        case "Greater Than":
+                            try {
+                                double cellNum = Double.parseDouble(cellText);
+                                double valueNum = Double.parseDouble(value);
+                                if (cellNum <= valueNum) return false;
+                            } catch (NumberFormatException ex) {
+                                return false;
+                            }
+                            break;
+                        case "Less Than":
+                            try {
+                                double cellNum = Double.parseDouble(cellText);
+                                double valueNum = Double.parseDouble(value);
+                                if (cellNum >= valueNum) return false;
+                            } catch (NumberFormatException ex) {
+                                return false;
+                            }
+                            break;
+                        case "Regex Match":
+                            try {
+                                if (!Pattern.compile(value).matcher(cellText).find()) return false;
+                            } catch (Exception ex) {
+                                return false;
+                            }
+                            break;
+                    }
+                }
+                return true;
+            }
+        };
+
+        if (sorter == null) {
+            sorter = new TableRowSorter<>(table.getModel());
+            table.setRowSorter(sorter);
+        }
+        sorter.setRowFilter(filter);
+    }
+
+    protected static class FilterCondition extends JPanel {
+        private final JComboBox<String> columnCombo;
+        private final JComboBox<String> operatorCombo;
+        private final JTextField valueField;
+
+        public FilterCondition(String[] columns) {
+            setLayout(new FlowLayout(FlowLayout.LEFT, 5, 0));
+            setBorder(BorderFactory.createEmptyBorder(2, 0, 2, 0));
+
+            columnCombo = new JComboBox<>(columns);
+            operatorCombo = new JComboBox<>(new String[]{
+                    "Equals", "Contains", "In List",
+                    "Greater Than", "Less Than", "Regex Match"
+            });
+            valueField = new JTextField(20);
+            JButton removeButton = new JButton("×");
+
+            // Make all components the same height
+            Dimension buttonSize = new Dimension(28, 28);
+            Dimension comboSize = new Dimension(120, 28);
+
+            columnCombo.setPreferredSize(comboSize);
+            operatorCombo.setPreferredSize(comboSize);
+            valueField.setPreferredSize(new Dimension(200, 28));
+            removeButton.setPreferredSize(buttonSize);
+
+            // Style the remove button
+            removeButton.setFont(new Font("Arial", Font.PLAIN, 18));
+            removeButton.setForeground(Color.RED);
+            removeButton.setFocusPainted(false);
+            removeButton.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+
+            // Add components
+            add(columnCombo);
+            add(operatorCombo);
+            add(valueField);
+            add(removeButton);
+
+            removeButton.addActionListener(e -> {
+                Container parent = getParent();
+                if (parent != null) {
+                    parent.remove(this);
+                    parent.revalidate();
+                    parent.repaint();
+                }
+            });
+        }
+
+        public String getColumnName() {
+            return (String) columnCombo.getSelectedItem();
+        }
+
+        public String getOperator() {
+            return (String) operatorCombo.getSelectedItem();
+        }
+
+        public String getValue() {
+            return valueField.getText();
+        }
     }
 
     protected static class FilterState {
