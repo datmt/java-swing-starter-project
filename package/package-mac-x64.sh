@@ -9,7 +9,7 @@ mvn clean package
 # Create the app package for macOS x64
 jpackage \
   --input target \
-  --name "BC18 Spreadsheet Tools" \
+  --name "bc18-spreadsheet-tools" \
   --main-jar bc-spreadsheet-jar-with-dependencies.jar \
   --main-class com.binarycarpenter.spreadsheet.MainApp \
   --type dmg \
@@ -17,7 +17,7 @@ jpackage \
   --app-version "1.0" \
   --vendor "Your Company" \
   --copyright "Copyright 2024" \
-  --mac-package-identifier com.binarycarpenter.spreadsheet.desktoptools \
+  --mac-package-identifier com.binarycarpenter.spreadsheet \
   --mac-package-name "BC18-ST" \
   --java-options "-Xmx2048m" \
   --java-options "--enable-preview"

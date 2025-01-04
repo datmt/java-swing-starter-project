@@ -25,7 +25,7 @@ jobs:
         run: |
           jpackage \
             --input target \
-            --name "BC18_Spreadsheet_Tools" \
+            --name "bc18-spreadsheet-tools" \
             --main-jar bc-spreadsheet-jar-with-dependencies.jar \
             --main-class com.binarycarpenter.spreadsheet.MainApp \
             --type dmg \
@@ -61,7 +61,7 @@ jobs:
         run: |
           jpackage \
             --input target \
-            --name "BC18_Spreadsheet_Tools" \
+            --name "bc18-spreadsheet-tools" \
             --main-jar bc-spreadsheet-jar-with-dependencies.jar \
             --main-class com.binarycarpenter.spreadsheet.MainApp \
             --type dmg \
@@ -79,7 +79,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: macos-arm-package
-          path: "BC18 Spreadsheet Tools-*.dmg"
+          path: "bc18-spreadsheet-tools-*.dmg"
 
   build-linux:
     runs-on: ubuntu-latest
@@ -138,7 +138,7 @@ jobs:
           $version = "${{ github.ref }}" -replace 'refs/tags/v', ''
           jpackage `
             --input target `
-            --name "BC18_Spreadsheet_Tools" `
+            --name "bc18-spreadsheet-tools" `
             --main-jar bc-spreadsheet-jar-with-dependencies.jar `
             --main-class com.binarycarpenter.spreadsheet.MainApp `
             --type msi `
