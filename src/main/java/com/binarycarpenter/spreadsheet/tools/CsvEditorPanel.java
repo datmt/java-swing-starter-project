@@ -50,8 +50,8 @@ public class CsvEditorPanel extends JPanel {
     private JLabel matchCountLabel;
 
     public CsvEditorPanel() {
-        setLayout(new BorderLayout(0, 0));
-        setBorder(new EmptyBorder(5, 5, 5, 5));
+        setLayout(new BorderLayout());
+        setBorder(new EmptyBorder(0, 0, 0, 0));
 
         // Initialize card layout and content panel first
         cardLayout = new CardLayout();
@@ -253,12 +253,11 @@ public class CsvEditorPanel extends JPanel {
         mainPanel.add(contentPanel, BorderLayout.CENTER);
         mainPanel.add(progressBar, BorderLayout.SOUTH);
 
-        // Add main panel to this panel
-        add(mainPanel, BorderLayout.CENTER);
+        // Add main panel to this panel with full size
+        add(mainPanel);
 
-        // Set sizes
+        // Set minimum size but allow expansion
         setMinimumSize(new Dimension(400, 300));
-        setPreferredSize(new Dimension(800, 600));
 
         // Initialize search
         setupSearchListeners();

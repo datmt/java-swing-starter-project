@@ -106,13 +106,12 @@ public class MainApp extends JFrame {
         leftPanel.add(treeScrollPane, "grow");
 
         // Right content panel
-        rightPanel = new JPanel(new MigLayout("fill"));
-        rightPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        rightPanel = new JPanel(new MigLayout("insets 0, fill"));
         rightPanel.add(contentPanel, "grow");
 
         // Add components to frame
-        add(leftPanel, "w 250!, grow y");
-        add(rightPanel, "grow");
+        add(leftPanel, "w 250!, growy");
+        add(rightPanel, "grow, push");
     }
 
     private void setupListeners() {
