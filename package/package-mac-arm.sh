@@ -15,9 +15,8 @@ jpackage \
   --type dmg \
   --icon src/main/resources/icons/app.icns \
   --app-version "1.0" \
-  --vendor "Your Company" \
+  --vendor "NAM SON TECHNOLOGY AND SOLUTIONS CO., LTD" \
   --copyright "Copyright 2024" \
-  --compress 2 \
   --mac-package-identifier com.binarycarpenter.spreadsheet \
   --mac-package-name "BC18-ST" \
   --java-options "-Xmx2048m" \

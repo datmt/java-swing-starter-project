@@ -19,7 +19,7 @@ jpackage ^
   --win-menu ^
   --win-shortcut ^
   --app-version "1.0" ^
-  --vendor "Your Company" ^
+  --vendor "NAM SON TECHNOLOGY AND SOLUTIONS CO., LTD" ^
   --copyright "Copyright © 2024" ^
   --win-per-user-install ^
   --win-menu-group "BC18 Spreadsheet Tools" ^

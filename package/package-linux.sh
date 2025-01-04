@@ -33,7 +33,7 @@ jpackage \
   --type rpm \
   --icon src/main/resources/icons/app.png \
   --app-version "1.0" \
-  --vendor "Your Company" \
+  --vendor "NAM SON TECHNOLOGY AND SOLUTIONS CO., LTD" \
   --copyright "Copyright © 2024" \
   --linux-shortcut \
   --linux-menu-group "Utility" \
