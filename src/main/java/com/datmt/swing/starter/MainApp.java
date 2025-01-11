@@ -1,7 +1,5 @@
 package com.datmt.swing.starter;
 
-import com.datmt.swing.starter.license.LicenseManager;
-import com.datmt.swing.starter.license.LicensePanel;
 import com.formdev.flatlaf.FlatLightLaf;
 import net.miginfocom.swing.MigLayout;
 
@@ -10,7 +8,6 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
-import java.awt.*;
 
 public class MainApp extends JFrame {
     private final JPanel contentPanel;
@@ -30,10 +27,6 @@ public class MainApp extends JFrame {
         JMenu fileMenu = new JMenu("File");
         JMenu settingsMenu = new JMenu("Settings");
 
-        JMenuItem activateMenuItem = new JMenuItem("License Activation");
-        activateMenuItem.addActionListener(e -> showLicenseDialog());
-        settingsMenu.add(activateMenuItem);
-
         menuBar.add(fileMenu);
         menuBar.add(settingsMenu);
         setJMenuBar(menuBar);
@@ -49,33 +42,6 @@ public class MainApp extends JFrame {
 
         // Add listeners
         setupListeners();
-
-        // Validate license on startup
-        SwingWorker<LicenseManager.ActivationResult, Void> worker = new SwingWorker<>() {
-            @Override
-            protected LicenseManager.ActivationResult doInBackground() {
-                return LicenseManager.validateLicense();
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    LicenseManager.ActivationResult result = get();
-                    if (!result.isSuccess()) {
-                        SwingUtilities.invokeLater(() -> {
-                            JOptionPane.showMessageDialog(MainApp.this,
-                                    "License validation failed: " + result.getError() + "\nPlease reactivate your license.",
-                                    "License Invalid",
-                                    JOptionPane.WARNING_MESSAGE);
-                            showLicenseDialog();
-                        });
-                    }
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-            }
-        };
-        worker.execute();
     }
 
     public static void main(String[] args) {
@@ -148,16 +114,6 @@ public class MainApp extends JFrame {
 
     private void handleToolSelection(Tool selectedTool) {
         if (!selectedTool.isCategory()) {
-            // Check license activation before allowing access to tools
-            if (!LicenseManager.isActivated()) {
-                JOptionPane.showMessageDialog(this,
-                        "Please activate your license to use this feature.",
-                        "License Required",
-                        JOptionPane.WARNING_MESSAGE);
-
-                showLicenseDialog();
-                return;
-            }
             showTool(selectedTool);
         }
     }
@@ -183,12 +139,5 @@ public class MainApp extends JFrame {
         rightPanel.repaint();
     }
 
-    private void showLicenseDialog() {
-        JDialog dialog = new JDialog(this, "License Activation", true);
-        dialog.setLayout(new BorderLayout());
-        dialog.add(new LicensePanel(), BorderLayout.CENTER);
-        dialog.pack();
-        dialog.setLocationRelativeTo(this);
-        dialog.setVisible(true);
-    }
+
 }
