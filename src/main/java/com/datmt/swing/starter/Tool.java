@@ -1,4 +1,6 @@
-package com.binarycarpenter.spreadsheet;
+package com.datmt.swing.starter;
+
+import lombok.Getter;
 
 import javax.swing.*;
 import java.util.ArrayList;
@@ -6,8 +8,10 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public class Tool {
+    @Getter
     private final String name;
     private final Supplier<JPanel> contentSupplier;
+    @Getter
     private final List<Tool> children;
     private final boolean isCategory;
     private JPanel content;
@@ -32,19 +36,11 @@ public class Tool {
         this.isCategory = isCategory;
     }
 
-    public String getName() {
-        return name;
-    }
-
     public JPanel getContent() {
         if (content == null && contentSupplier != null) {
             content = contentSupplier.get();
         }
         return content;
-    }
-
-    public List<Tool> getChildren() {
-        return children;
     }
 
     public void addChild(Tool child) {

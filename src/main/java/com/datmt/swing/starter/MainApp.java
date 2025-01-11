@@ -1,7 +1,7 @@
-package com.binarycarpenter.spreadsheet;
+package com.datmt.swing.starter;
 
-import com.binarycarpenter.spreadsheet.license.LicenseManager;
-import com.binarycarpenter.spreadsheet.license.LicensePanel;
+import com.datmt.swing.starter.license.LicenseManager;
+import com.datmt.swing.starter.license.LicensePanel;
 import com.formdev.flatlaf.FlatLightLaf;
 import net.miginfocom.swing.MigLayout;
 
@@ -20,7 +20,7 @@ public class MainApp extends JFrame {
     private JPanel rightPanel;
 
     public MainApp() {
-        super("BC18 Spreadsheet Tools");
+        super("Java Swing Starter App");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1024, 768);
         setLocationRelativeTo(null);

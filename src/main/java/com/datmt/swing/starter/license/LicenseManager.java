@@ -1,4 +1,4 @@
-package com.binarycarpenter.spreadsheet.license;
+package com.datmt.swing.starter.license;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;

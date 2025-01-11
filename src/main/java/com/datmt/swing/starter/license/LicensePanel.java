@@ -1,4 +1,4 @@
-package com.binarycarpenter.spreadsheet.license;
+package com.datmt.swing.starter.license;
 
 import net.miginfocom.swing.MigLayout;
 
