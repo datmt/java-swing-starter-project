@@ -156,7 +156,7 @@ jobs:
           path: "*.msi"
 
   create-release:
-    needs: [build-mac-x64, build-mac-arm, build-linux, build-windows]
+    needs: [ build-mac-x64, build-mac-arm, build-linux, build-windows ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
