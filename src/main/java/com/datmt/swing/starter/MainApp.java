@@ -1,6 +1,8 @@
 package com.datmt.swing.starter;
 
 import com.formdev.flatlaf.FlatLightLaf;
+
+import lombok.extern.slf4j.Slf4j;
 import net.miginfocom.swing.MigLayout;
 
 import java.awt.Color;
@@ -11,6 +13,7 @@ import javax.swing.event.DocumentListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 
+@Slf4j
 public class MainApp extends JFrame {
     private final JPanel contentPanel;
     private final JTextField searchField;
@@ -54,7 +57,7 @@ public class MainApp extends JFrame {
                 UIManager.put("ProgressBar.arc", 0);
                 UIManager.put("TabbedPane.selectedBackground", Color.white);
             } catch (Exception ex) {
-                System.err.println("Failed to initialize FlatLaf");
+                log.error("Failed to start flatlaf", ex);
             }
             new MainApp().setVisible(true);
         });

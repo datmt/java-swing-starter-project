@@ -4,6 +4,9 @@ import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class StarterPanel extends JPanel {
     private final JButton myButton;
 
@@ -18,6 +21,7 @@ public class StarterPanel extends JPanel {
         myButton.addActionListener(e -> {
             //open a dialog with message
             JOptionPane.showMessageDialog(this, "This is a starter panel. Customize it as needed!");
+            log.info("Button clicked in StarterPanel");
         });
     }
 }

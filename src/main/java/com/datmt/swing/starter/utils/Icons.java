@@ -2,9 +2,13 @@ package com.datmt.swing.starter.utils;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+
+import lombok.extern.slf4j.Slf4j;
+
 import java.awt.*;
 import java.io.InputStream;
 
+@Slf4j
 public class Icons {
     public static final Icon OPEN = createIcon("folder-open", 16);
     public static final Icon SAVE = createIcon("save", 16);
@@ -19,14 +23,14 @@ public class Icons {
             String iconPath = "/icons/" + name + ".png";
             InputStream is = Icons.class.getResourceAsStream(iconPath);
             if (is == null) {
-                System.err.println("Could not find icon: " + iconPath);
+                log.warn("Icon not found: " + iconPath);
                 return createEmptyIcon(name, size);
             }
 
             try {
                 Image image = ImageIO.read(is);
                 if (image == null) {
-                    System.err.println("Could not read icon image: " + iconPath);
+                    log.warn("Could not read icon image: " + iconPath);
                     return createEmptyIcon(name, size);
                 }
 
@@ -42,7 +46,7 @@ public class Icons {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Error loading icon '" + name + "': " + e.getMessage());
+            log.error("Error loading icon: " + name, e);
             return createEmptyIcon(name, size);
         }
     }
