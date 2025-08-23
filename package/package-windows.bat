@@ -10,9 +10,9 @@ call mvn clean package
 rem Create the app package for Windows
 jpackage ^
   --input target ^
-  --name "BC18 Spreadsheet Tools" ^
+  --name "Swing Starter Tools" ^
   --main-jar swing-starter-jar-with-dependencies.jar ^
-  --main-class spreadsheet.com.datmt.swing.MainApp ^
+  --main-class com.datmt.swing.starter.MainApp ^
   --type msi ^
   --icon src/main/resources/icons/app.ico ^
   --win-dir-chooser ^
@@ -22,7 +22,7 @@ jpackage ^
   --vendor "NAM SON TECHNOLOGY AND SOLUTIONS CO., LTD" ^
   --copyright "Copyright © 2024" ^
   --win-per-user-install ^
-  --win-menu-group "BC18 Spreadsheet Tools" ^
+  --win-menu-group "Swing Starter Tools" ^
   --java-options "-Xmx2048m" ^
   --java-options "--enable-preview"
 

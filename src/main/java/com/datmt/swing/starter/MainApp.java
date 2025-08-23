@@ -3,6 +3,8 @@ package com.datmt.swing.starter;
 import com.formdev.flatlaf.FlatLightLaf;
 import net.miginfocom.swing.MigLayout;
 
+import java.awt.Color;
+
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -48,7 +50,9 @@ public class MainApp extends JFrame {
         SwingUtilities.invokeLater(() -> {
             try {
                 FlatLightLaf.setup();
-                UIManager.setLookAndFeel(new FlatLightLaf());
+                UIManager.put("Component.arc", 0);
+                UIManager.put("ProgressBar.arc", 0);
+                UIManager.put("TabbedPane.selectedBackground", Color.white);
             } catch (Exception ex) {
                 System.err.println("Failed to initialize FlatLaf");
             }
@@ -138,6 +142,5 @@ public class MainApp extends JFrame {
         rightPanel.revalidate();
         rightPanel.repaint();
     }
-
 
 }

@@ -26,21 +26,21 @@ jobs:
           jpackage \
             --input target \
             --name "swing-starter-tools" \
-            --main-jar swing-starter-jar-with-dependencies.jar \
+            --main-jar bc-spreadsheet-jar-with-dependencies.jar \
             --main-class com.datmt.spreadsheet.MainApp \
             --type dmg \
             --icon src/main/resources/icons/app.icns \
             --app-version "${GITHUB_REF#refs/tags/v}" \
-            --vendor "BC18" \
+            --vendor "datmt" \
             --copyright "Copyright 2024" \
             --mac-package-identifier com.datmt.spreadsheet \
-            --mac-package-name "BC18-ST"
+            --mac-package-name "datmt"
 
       - name: Upload macOS x64 Package
         uses: actions/upload-artifact@v3
         with:
           name: macos-x64-package
-          path: "BC18 Spreadsheet Tools-*.dmg"
+          path: "Swing Starter Tools-*.dmg"
 
   build-mac-arm:
     runs-on: macos-latest
@@ -62,15 +62,15 @@ jobs:
           jpackage \
             --input target \
             --name "swing-starter-tools" \
-            --main-jar swing-starter-jar-with-dependencies.jar \
+            --main-jar bc-spreadsheet-jar-with-dependencies.jar \
             --main-class com.datmt.spreadsheet.MainApp \
             --type dmg \
             --icon src/main/resources/icons/app.icns \
             --app-version "${GITHUB_REF#refs/tags/v}" \
-            --vendor "BC18" \
+            --vendor "datmt" \
             --copyright "Copyright 2024" \
             --mac-package-identifier com.datmt.spreadsheet \
-            --mac-package-name "BC18-ST" \
+            --mac-package-name "datmt" \
             --mac-package-signing-prefix com.datmt \
             --java-options "--enable-preview" \
             --java-options "-Dapple.awt.application.appearance=system"
@@ -101,16 +101,16 @@ jobs:
           jpackage \
             --input target \
             --name "swing-starter-tools" \
-            --main-jar swing-starter-jar-with-dependencies.jar \
+            --main-jar bc-spreadsheet-jar-with-dependencies.jar \
             --main-class com.datmt.spreadsheet.MainApp \
             --type deb \
             --linux-shortcut \
             --app-version "${GITHUB_REF#refs/tags/v}" \
-            --vendor "BC18" \
+            --vendor "datmt" \
             --copyright "Copyright 2024" \
             --linux-menu-group "Office" \
             --linux-app-category "Office" \
-            --description "BC18 Spreadsheet Tools - Excel and CSV processing tools"
+            --description "Swing Starter Tools - Excel and CSV processing tools"
 
       - name: Upload Linux Package
         uses: actions/upload-artifact@v3
@@ -139,15 +139,15 @@ jobs:
           jpackage `
             --input target `
             --name "swing-starter-tools" `
-            --main-jar swing-starter-jar-with-dependencies.jar `
+            --main-jar bc-spreadsheet-jar-with-dependencies.jar `
             --main-class com.datmt.spreadsheet.MainApp `
             --type msi `
             --app-version $version `
-            --vendor "BC18" `
+            --vendor "datmt" `
             --win-menu `
             --win-dir-chooser `
             --win-shortcut `
-            --description "BC18 Spreadsheet Tools - Excel and CSV processing tools"
+            --description "Swing Starter Tools - Excel and CSV processing tools"
 
       - name: Upload Windows Package
         uses: actions/upload-artifact@v3

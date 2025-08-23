@@ -52,8 +52,8 @@ chmod +x package-linux.sh
 
 The installers will be created in the project root directory:
 
-- macOS: `BC18 Spreadsheet Tools-1.0.dmg`
-- Windows: `BC18 Spreadsheet Tools-1.0.msi`
+- macOS: `Swing Starter Tools-1.0.dmg`
+- Windows: `Swing Starter Tools-1.0.msi`
 - Linux:
     - `desktop-tools_1.0-1_amd64.deb`
     - `desktop-tools-1.0-1.x86_64.rpm`

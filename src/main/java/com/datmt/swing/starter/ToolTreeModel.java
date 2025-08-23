@@ -1,6 +1,6 @@
 package com.datmt.swing.starter;
 
-import com.datmt.swing.starter.tools.JsonToCsvPanel;
+import com.datmt.swing.starter.tools.StarterPanel;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -24,21 +24,17 @@ public class ToolTreeModel extends DefaultTreeModel {
     }
 
     private void initializeTools() {
-        // Create JSON category
-        Tool jsonCategory = new Tool("JSON Tools", new JPanel(), true);
+        Tool toolCategory = new Tool("Tools", new JPanel(), true);
 
-        // Create JSON to CSV tool with its panel
-        Tool jsonToCsvTool = new Tool("JSON to CSV", JsonToCsvPanel::new, false);
-        jsonCategory.addChild(jsonToCsvTool);
+        Tool firstTool = new Tool("First Tool", StarterPanel::new, false);
+        toolCategory.addChild(firstTool);
 
 
         // Add to all tools list
-        allTools.add(jsonCategory);
-        allTools.add(jsonToCsvTool);
+        allTools.add(toolCategory);
+        allTools.add(firstTool);
 
-        // Add to tool panels map
-        toolPanels.put("JSON to CSV", JsonToCsvPanel.class);
-        // Build tree structure
+        toolPanels.put("First tool", StarterPanel.class);
         buildTreeNodes();
     }
 
