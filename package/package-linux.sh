@@ -10,12 +10,12 @@ mvn clean package
 jpackage \
   --input target \
   --name "desktop-tools" \
-  --main-jar bc-spreadsheet-jar-with-dependencies.jar \
-  --main-class com.binarycarpenter.spreadsheet.MainApp \
+  --main-jar swing-starter-jar-with-dependencies.jar \
+  --main-class com.datmt.spreadsheet.MainApp \
   --type deb \
   --icon src/main/resources/icons/app.png \
   --app-version "1.0" \
-  --vendor "Binary Carpenter" \
+  --vendor "datmt" \
   --copyright "Copyright © 2024" \
   --linux-shortcut \
   --linux-menu-group "Utility" \
@@ -28,8 +28,8 @@ jpackage \
 jpackage \
   --input target \
   --name "desktop-tools" \
-  --main-jar bc-spreadsheet-jar-with-dependencies.jar \
-  --main-class com.binarycarpenter.spreadsheet.MainApp \
+  --main-jar swing-starter-jar-with-dependencies.jar \
+  --main-class com.datmt.spreadsheet.MainApp \
   --type rpm \
   --icon src/main/resources/icons/app.png \
   --app-version "1.0" \

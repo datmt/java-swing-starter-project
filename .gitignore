@@ -10,6 +10,8 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 *.dmg
+*.msi
+*.exe
 # Java
 *.class
 *.log

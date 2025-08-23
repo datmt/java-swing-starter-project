@@ -11,7 +11,7 @@ rem Create the app package for Windows
 jpackage ^
   --input target ^
   --name "BC18 Spreadsheet Tools" ^
-  --main-jar bc-spreadsheet-jar-with-dependencies.jar ^
+  --main-jar swing-starter-jar-with-dependencies.jar ^
   --main-class spreadsheet.com.datmt.swing.MainApp ^
   --type msi ^
   --icon src/main/resources/icons/app.ico ^

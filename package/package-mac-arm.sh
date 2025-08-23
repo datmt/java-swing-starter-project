@@ -10,14 +10,14 @@ mvn clean package
 jpackage \
   --input target \
   --name "BC18 Spreadsheet Tools" \
-  --main-jar bc-spreadsheet-jar-with-dependencies.jar \
-  --main-class com.binarycarpenter.spreadsheet.MainApp \
+  --main-jar swing-starter-jar-with-dependencies.jar \
+  --main-class com.datmt.spreadsheet.MainApp \
   --type dmg \
   --icon src/main/resources/icons/app.icns \
   --app-version "1.0" \
   --vendor "NAM SON TECHNOLOGY AND SOLUTIONS CO., LTD" \
   --copyright "Copyright 2024" \
-  --mac-package-identifier com.binarycarpenter.spreadsheet \
+  --mac-package-identifier com.datmt.spreadsheet \
   --mac-package-name "BC18-ST" \
   --java-options "-Xmx2048m" \
   --java-options "--enable-preview"

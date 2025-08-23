@@ -25,15 +25,15 @@ jobs:
         run: |
           jpackage \
             --input target \
-            --name "bc18-spreadsheet-tools" \
-            --main-jar bc-spreadsheet-jar-with-dependencies.jar \
-            --main-class com.binarycarpenter.spreadsheet.MainApp \
+            --name "swing-starter-tools" \
+            --main-jar swing-starter-jar-with-dependencies.jar \
+            --main-class com.datmt.spreadsheet.MainApp \
             --type dmg \
             --icon src/main/resources/icons/app.icns \
             --app-version "${GITHUB_REF#refs/tags/v}" \
             --vendor "BC18" \
             --copyright "Copyright 2024" \
-            --mac-package-identifier com.binarycarpenter.spreadsheet \
+            --mac-package-identifier com.datmt.spreadsheet \
             --mac-package-name "BC18-ST"
 
       - name: Upload macOS x64 Package
@@ -61,17 +61,17 @@ jobs:
         run: |
           jpackage \
             --input target \
-            --name "bc18-spreadsheet-tools" \
-            --main-jar bc-spreadsheet-jar-with-dependencies.jar \
-            --main-class com.binarycarpenter.spreadsheet.MainApp \
+            --name "swing-starter-tools" \
+            --main-jar swing-starter-jar-with-dependencies.jar \
+            --main-class com.datmt.spreadsheet.MainApp \
             --type dmg \
             --icon src/main/resources/icons/app.icns \
             --app-version "${GITHUB_REF#refs/tags/v}" \
             --vendor "BC18" \
             --copyright "Copyright 2024" \
-            --mac-package-identifier com.binarycarpenter.spreadsheet \
+            --mac-package-identifier com.datmt.spreadsheet \
             --mac-package-name "BC18-ST" \
-            --mac-package-signing-prefix com.binarycarpenter \
+            --mac-package-signing-prefix com.datmt \
             --java-options "--enable-preview" \
             --java-options "-Dapple.awt.application.appearance=system"
 
@@ -79,7 +79,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: macos-arm-package
-          path: "bc18-spreadsheet-tools-*.dmg"
+          path: "swing-starter-tools-*.dmg"
 
   build-linux:
     runs-on: ubuntu-latest
@@ -100,9 +100,9 @@ jobs:
         run: |
           jpackage \
             --input target \
-            --name "bc18-spreadsheet-tools" \
-            --main-jar bc-spreadsheet-jar-with-dependencies.jar \
-            --main-class com.binarycarpenter.spreadsheet.MainApp \
+            --name "swing-starter-tools" \
+            --main-jar swing-starter-jar-with-dependencies.jar \
+            --main-class com.datmt.spreadsheet.MainApp \
             --type deb \
             --linux-shortcut \
             --app-version "${GITHUB_REF#refs/tags/v}" \
@@ -138,9 +138,9 @@ jobs:
           $version = "${{ github.ref }}" -replace 'refs/tags/v', ''
           jpackage `
             --input target `
-            --name "bc18-spreadsheet-tools" `
-            --main-jar bc-spreadsheet-jar-with-dependencies.jar `
-            --main-class com.binarycarpenter.spreadsheet.MainApp `
+            --name "swing-starter-tools" `
+            --main-jar swing-starter-jar-with-dependencies.jar `
+            --main-class com.datmt.spreadsheet.MainApp `
             --type msi `
             --app-version $version `
             --vendor "BC18" `

@@ -4,8 +4,8 @@
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.binarycarpenter</groupId>
-	<artifactId>bc-18-spreadsheet-tools</artifactId>
-	<version>v7.4.0</version>
+	<artifactId>java-swing-starter</artifactId>
+	<version>v1.0.0</version>
 
 	<properties>
 		<maven.compiler.source>17</maven.compiler.source>
@@ -80,7 +80,7 @@
 	</dependencies>
 
 	<build>
-		<finalName>bc-spreadsheet</finalName>
+		<finalName>swing-starter</finalName>
 		<resources>
 			<resource>
 				<directory>src/main/resources</directory>
